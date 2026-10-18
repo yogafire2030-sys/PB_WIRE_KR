@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[PB수첩 글로벌 속보 (made by 박*남)]</title>
+  <meta name="description" content="7×24 실시간 속보 한국어 번역">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23131c2e'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23e5484d'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar__inner">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true"><i></i></span>
+        <div>
+          <h1 class="brand__title">[PB수첩 글로벌 속보 (made by 박*남)]</h1>
+          <p class="brand__sub">7×24 실시간 속보 · 한국어</p>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="live" id="live" data-state="connecting">
+          <span class="live__dot"></span><span class="live__text" id="liveText">연결 중</span>
+        </div>
+        <div class="clock" id="clock" aria-label="현재 시각(KST)">--:--:--</div>
+        <button class="icon-btn" id="themeBtn" type="button" aria-label="화면 테마 전환" title="라이트/다크 전환">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="toolbar">
+      <div class="toolbar__left">
+        <span class="date" id="today"></span>
+        <label class="switch">
+          <input type="checkbox" id="onlyImportant">
+          <span class="switch__track"><span class="switch__thumb"></span></span>
+          <span>중요 뉴스만</span>
+        </label>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="m21 21-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+        <input id="search" type="search" maxlength="60" placeholder="키워드 검색" autocomplete="off">
+      </div>
+    </section>
+
+    <div class="meta" id="meta" aria-live="polite"></div>
+
+    <section class="feed" id="feed" aria-busy="true">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </section>
+
+    <p class="empty" id="empty" hidden>표시할 속보가 없습니다.</p>
+
+    <footer class="foot">
+      뉴스의 정확성과 출처 및 번역결과에 대한 어떠한 책임도 지지 않습니다. 투자판단에 대한 책임은 전적으로 투자자 본인에게 있습니다.
+    </footer>
+  </main>
+
+  <button class="newpill" id="newPill" type="button" hidden>새 속보 <b id="newCount">0</b>건 ↑</button>
+
+  <template id="tplItem">
+    <article class="item">
+      <time class="item__time"></time>
+      <div class="item__body">
+        <h3 class="item__title"></h3>
+        <p class="item__text"></p>
+        <div class="item__actions">
+          <button type="button" class="link-btn" data-act="more">더보기</button>
+          <button type="button" class="link-btn" data-act="copy">복사</button>
+          <a class="link-btn" target="_blank" rel="noopener noreferrer">출처 ↗</a>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script id="boot" type="application/json">{{ {"channel": default_channel, "pollMs": poll_ms} | tojson }}</script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>
