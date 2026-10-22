@@ -1,5 +1,7 @@
-"""라우트 — 화면 1개 + JSON API 2개."""
+"""라우트 — 화면 1개 + JSON API 3개."""
 from flask import Blueprint, abort, current_app, jsonify, render_template, request
+
+from .services.market import INDICES
 
 bp = Blueprint("main", __name__)
 
@@ -14,6 +16,7 @@ def index():
     channels = [{"key": k, **v} for k, v in cfg["CHANNELS"].items()]
     return render_template("index.html", channels=channels,
                            default_channel=cfg["DEFAULT_CHANNEL"],
+                           indices=[{"key": k, "name": n} for k, n, *_ in INDICES],
                            poll_ms=5000)
 
 
@@ -26,6 +29,11 @@ def api_news():
     if not since.isdigit() or len(since) > 12:
         abort(400)
     return jsonify(_feed().delta(channel, int(since)))
+
+
+@bp.get("/api/market")
+def api_market():
+    return jsonify(current_app.extensions["market"].snapshot())
 
 
 @bp.get("/api/status")

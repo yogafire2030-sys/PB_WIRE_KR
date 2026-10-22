@@ -29,13 +29,20 @@ class Config:
     HTTP_TIMEOUT = _int("HTTP_TIMEOUT", 8, 2, 30)
 
     # ── 번역 ──────────────────────────────────────────────
-    # auto | deepl | papago | google | mymemory
+    # auto | deepl | azure | papago | edge | google | bing | mymemory
+    # (지정한 엔진이 맨 앞, 나머지는 자동 폴백)
     TRANSLATOR = os.getenv("TRANSLATOR", "auto").strip().lower()
     DEEPL_API_KEY = os.getenv("DEEPL_API_KEY", "").strip()
+    AZURE_TRANSLATOR_KEY = os.getenv("AZURE_TRANSLATOR_KEY", "").strip()
+    AZURE_TRANSLATOR_REGION = os.getenv("AZURE_TRANSLATOR_REGION", "").strip()
+    MYMEMORY_EMAIL = os.getenv("MYMEMORY_EMAIL", "").strip()
     PAPAGO_CLIENT_ID = os.getenv("PAPAGO_CLIENT_ID", "").strip()
     PAPAGO_CLIENT_SECRET = os.getenv("PAPAGO_CLIENT_SECRET", "").strip()
     TRANSLATE_WORKERS = _int("TRANSLATE_WORKERS", 4, 1, 16)
     TRANSLATION_CACHE_SIZE = _int("TRANSLATION_CACHE_SIZE", 3000, 100, 50000)
+
+    # ── 주요 지수 ──────────────────────────────────────────
+    MARKET_POLL_INTERVAL = _int("MARKET_POLL_INTERVAL", 15, 5, 300)  # 초
 
     CHANNELS = {
         "global": {"label": "주요뉴스", "origin": "要闻", "id": "global-channel"},

@@ -21,7 +21,7 @@
     live: $("live"), liveText: $("liveText"), clock: $("clock"), today: $("today"),
     important: $("onlyImportant"), search: $("search"),
     pill: $("newPill"), pillCount: $("newCount"), themeBtn: $("themeBtn"),
-    tpl: $("tplItem"),
+    tpl: $("tplItem"), mkt: $("mkt"),
   };
 
   const POLL_MS = Math.max(3000, Number(boot.pollMs) || 5000);
@@ -115,8 +115,8 @@
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) { stopPolling(); setLive("paused", "일시정지"); }
-    else poll(true);
+    if (document.hidden) { stopPolling(); stopMarket(); setLive("paused", "일시정지"); }
+    else { poll(true); pollMarket(); }
   });
 
   // ── 폴링 ──────────────────────────────────────────────
@@ -216,7 +216,8 @@
         frag.appendChild(h);
       }
       let node = nodes.get(it.id);
-      if (!node || node.dataset.q !== query) { node = buildItem(it); nodes.set(it.id, node); }
+      // 데이터 객체가 바뀌었으면(번역 완료·서버 재시작 후 reset 등) 다시 그림
+      if (!node || node.dataset.q !== query || node._it !== it) { node = buildItem(it); nodes.set(it.id, node); }
       if (added.has(it.id)) {
         node.classList.remove("is-fresh"); void node.offsetWidth; node.classList.add("is-fresh");
       }
@@ -240,6 +241,7 @@
     const node = els.tpl.content.firstElementChild.cloneNode(true);
     node.dataset.id = String(it.id);
     node.dataset.q = query;
+    node._it = it;
     if (it.important) node.classList.add("is-hot");
     const time = node.querySelector(".item__time");
     time.textContent = fmtTime.format(it.ts * 1000);
@@ -314,5 +316,79 @@
     els.today.textContent = fmtDay.format(now);
   }
 
+  // ── 주요 지수 ─────────────────────────────────────────
+  const fmtNum = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const tiles = new Map(); // key -> { el, price, diff, pct, arrow, time, last }
+  if (els.mkt) {
+    for (const el of els.mkt.querySelectorAll(".q")) {
+      tiles.set(el.dataset.key, {
+        el, last: null,
+        price: el.querySelector(".q__price"), diff: el.querySelector(".q__diff"),
+        pct: el.querySelector(".q__pct"), arrow: el.querySelector(".q__arrow"),
+        time: el.querySelector(".q__time"),
+      });
+    }
+  }
+  let mktTimer = null, mktCtrl = null, mktBackoff = 0;
+
+  function stopMarket() {
+    clearTimeout(mktTimer); mktTimer = null;
+    if (mktCtrl) { mktCtrl.abort(); mktCtrl = null; }
+  }
+
+  async function pollMarket() {
+    stopMarket();
+    if (!tiles.size || document.hidden) return;
+    const ctrl = new AbortController();
+    mktCtrl = ctrl;
+    const to = setTimeout(() => ctrl.abort(), 10000);
+    let next = 15000;
+    try {
+      const res = await fetch("/api/market", {
+        signal: ctrl.signal, cache: "no-store", credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      for (const q of items) updateTile(q);
+      mktBackoff = 0;
+      // 첫 수집 전(빈 응답)에는 짧게 재시도
+      next = items.length ? Math.max(5000, (Number(data.interval) || 15) * 1000) : 3000;
+    } catch (err) {
+      if (err.name === "AbortError" && mktCtrl !== ctrl) return; // 탭 숨김 등으로 취소
+      mktBackoff = Math.min(MAX_BACKOFF, mktBackoff ? mktBackoff * 2 : 10000);
+      next = mktBackoff;
+    } finally {
+      clearTimeout(to);
+      if (mktCtrl === ctrl) {
+        mktCtrl = null;
+        if (!document.hidden) mktTimer = setTimeout(pollMarket, next);
+      }
+    }
+  }
+
+  function updateTile(q) {
+    const t = tiles.get(q.key);
+    if (!t || !Number.isFinite(q.price)) return;
+    const chg = Number(q.change) || 0, pct = Number(q.pct) || 0;
+    const sign = chg > 0 ? "+" : chg < 0 ? "-" : "";
+    const el = t.el;
+    el.classList.remove("is-loading", "is-up", "is-down");
+    if (chg > 0) el.classList.add("is-up"); else if (chg < 0) el.classList.add("is-down");
+    el.classList.toggle("is-stale", !!q.stale);
+    t.price.textContent = fmtNum.format(q.price);
+    t.arrow.textContent = chg > 0 ? "▲" : chg < 0 ? "▼" : "■";
+    t.diff.textContent = sign + fmtNum.format(Math.abs(chg));
+    t.pct.textContent = (pct > 0 ? "+" : pct < 0 ? "-" : "") + fmtNum.format(Math.abs(pct)) + "%";
+    t.time.textContent = `${q.state === "CLOSE" ? "CLOSE" : "LAST"} | ${q.time || ""}`;
+    el.title = q.stale ? "시세 지연 — 마지막 수신값" : "";
+    if (t.last !== null && t.last !== q.price) {
+      el.classList.remove("is-tick"); void el.offsetWidth; el.classList.add("is-tick");
+    }
+    t.last = q.price;
+  }
+
   poll(true);
+  pollMarket();
 })();

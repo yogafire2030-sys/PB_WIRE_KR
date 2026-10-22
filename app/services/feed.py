@@ -24,7 +24,14 @@ log = logging.getLogger(__name__)
 
 _TITLE_RE = re.compile(r"^\s*【([^】]{1,200})】\s*")
 _WS_RE = re.compile(r"[ \t　]+")
-MAX_RETRY = 3
+MAX_TRIES = 40          # 항목당 번역 재시도 상한(백오프 포함 수 시간)
+RETRY_BASE = 5          # 재시도 간격(초) — 5, 10, 20 … 최대 RETRY_MAX
+RETRY_MAX = 300
+BATCH_SIZE = 24         # 1회 번역 묶음(수집 주기가 밀리지 않도록 작게)
+
+
+def _is_pending(it: dict, now: float) -> bool:
+    return not it["translated"] and it["_tries"] < MAX_TRIES and it["_next"] <= now
 
 
 def _clean(text) -> str:
@@ -119,6 +126,7 @@ def _normalize(raw: dict, stock_titles: set | None = None) -> dict | None:
         "url": f"https://wallstreetcn.com/livenews/{iid}",
         "seq": 0,
         "_tries": 0,
+        "_next": 0.0,
     }
 
 
@@ -239,10 +247,14 @@ class FeedService:
     def status(self) -> dict:
         return {
             "engine": self.translator.engine_name,
+            "last_engine": self.translator.last_engine,
+            "engines": self.translator.health(),
             "cache_size": len(self.translator.cache),
             "poll_interval": self.cfg["POLL_INTERVAL"],
             "channels": {
-                k: {"items": len(s.items), "last_fetch": int(s.last_fetch), "error": s.error}
+                k: {"items": len(s.items),
+                    "untranslated": sum(1 for it in s.items.values() if not it["translated"]),
+                    "last_fetch": int(s.last_fetch), "error": s.error}
                 for k, s in self.stores.items()
             },
         }
@@ -259,12 +271,17 @@ class FeedService:
                 active = key == self.default or now - st.last_access < idle
                 due = now - st.last_fetch >= self.cfg["POLL_INTERVAL"] - 0.5
                 with st.lock:
-                    untranslated = sum(1 for it in st.items.values() if not it["translated"] and it["_tries"] < 10)
-                if active and (due or untranslated > 0):
-                    self._refresh(key, st)
+                    untranslated = any(_is_pending(it, now) for it in st.items.values())
+                if active and (due or untranslated):
+                    try:
+                        self._refresh(key, st)
+                    except RuntimeError:  # 종료 중 번역 풀이 닫힌 경우
+                        return
+                    except Exception:  # 예기치 못한 오류로 수집 스레드가 죽지 않도록
+                        log.exception("수집 루프 오류[%s]", key)
                     with st.lock:
-                        if sum(1 for it in st.items.values() if not it["translated"] and it["_tries"] < 10) > 0:
-                            has_pending = True
+                        t = time.time()
+                        has_pending = has_pending or any(_is_pending(it, t) for it in st.items.values())
             wait_time = 0.5 if has_pending else 2.0
             self._wake.wait(timeout=wait_time)
             self._wake.clear()
@@ -364,27 +381,34 @@ class FeedService:
                         it["seq"] = st.seq
                         st.items[it["id"]] = it
 
+                # 보관 상한 유지 — 오래된 항목부터 제거
+                overflow = len(st.items) - self.cfg["MAX_ITEMS_PER_CHANNEL"]
+                if overflow > 0:
+                    for old in sorted(st.items.values(), key=lambda x: (x["ts"], x["id"]))[:overflow]:
+                        del st.items[old["id"]]
+
+        now = time.time()
         with st.lock:
-            # 미번역 항목 중 시도 횟수 10회 미만 (최신순 우선)
-            pending = [it for it in st.items.values()
-                       if not it["translated"] and it["_tries"] < 10]
+            # 재시도 시각이 된 미번역 항목 (최신순 우선)
+            pending = [it for it in st.items.values() if _is_pending(it, now)]
         if not pending:
             return
 
         pending.sort(key=lambda x: x["ts"], reverse=True)
-        batch = pending[:40]
+        batch = pending[:BATCH_SIZE]
 
         results = list(self.pool.map(self._translate_item, batch))
 
         with st.lock:
+            now = time.time()
             for it, res in zip(batch, results):
+                if it["id"] not in st.items:  # 번역 중 상한 정리로 제거된 항목
+                    continue
+                changed = any(it.get(k) != v for k, v in res.items())
                 it.update(res)
                 it["_tries"] += 1
-                st.seq += 1
-                it["seq"] = st.seq
-                st.items[it["id"]] = it
-            # 보관 상한 유지 — 오래된 항목부터 제거
-            overflow = len(st.items) - self.cfg["MAX_ITEMS_PER_CHANNEL"]
-            if overflow > 0:
-                for old in sorted(st.items.values(), key=lambda x: (x["ts"], x["id"]))[:overflow]:
-                    del st.items[old["id"]]
+                if not it["translated"]:  # 지수 백오프 — 엔진 차단 중 무의미한 재요청 방지
+                    it["_next"] = now + min(RETRY_MAX, RETRY_BASE * (2 ** min(it["_tries"] - 1, 8)))
+                if changed:  # 내용이 바뀐 경우에만 클라이언트로 재전송
+                    st.seq += 1
+                    it["seq"] = st.seq

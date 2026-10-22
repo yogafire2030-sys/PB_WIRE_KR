@@ -7,6 +7,7 @@ from flask import Flask
 
 from config import Config
 from .services.feed import FeedService
+from .services.market import MarketService
 
 
 def create_app(config_object=Config, start_poller: bool = True) -> Flask:
@@ -17,6 +18,8 @@ def create_app(config_object=Config, start_poller: bool = True) -> Flask:
 
     feed = FeedService(app.config)
     app.extensions["feed"] = feed
+    market = MarketService(app.config)
+    app.extensions["market"] = market
 
     from .routes import bp
     app.register_blueprint(bp)
@@ -42,6 +45,8 @@ def create_app(config_object=Config, start_poller: bool = True) -> Flask:
     # 디버그 리로더 사용 시 부모 프로세스에서는 수집 스레드를 띄우지 않음(중복 방지)
     if start_poller and (not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true"):
         feed.start()
+        market.start()
         atexit.register(feed.stop)
+        atexit.register(market.stop)
 
     return app
