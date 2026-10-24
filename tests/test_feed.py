@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -8,7 +9,7 @@ from app.services.feed import FeedService
 
 
 def _raw(i, text):
-    return {"id": i, "title": "", "content_text": text, "display_time": 1_700_000_000 + i, "score": 1}
+    return {"id": i, "title": "", "content_text": text, "display_time": int(time.time()) - 60 + i, "score": 1}
 
 
 def test_failed_translation_backs_off_then_recovers():
@@ -16,7 +17,7 @@ def test_failed_translation_backs_off_then_recovers():
     svc = FeedService(cfg)
     try:
         svc._update_stock_titles = lambda: None
-        svc._fetch_history = lambda ch, days=3: [_raw(1, "美联储宣布维持利率不变。")]
+        svc._fetch_history = lambda ch, hours=48: [_raw(1, "美联储宣布维持利率不变。")]
         svc._fetch = lambda ch: []
         st = svc.stores["global"]
 
@@ -39,5 +40,21 @@ def test_failed_translation_backs_off_then_recovers():
         d = svc.delta("global", seq_before)
         assert [x["id"] for x in d["items"]] == [1]
         assert "_next" not in d["items"][0]
+    finally:
+        svc.stop()
+
+
+def test_items_older_than_retention_are_dropped():
+    cfg = {k: v for k, v in Config.__dict__.items() if k.isupper()}
+    svc = FeedService(cfg)
+    try:
+        svc._update_stock_titles = lambda: None
+        old = _raw(1, "旧闻。")
+        old["display_time"] = int(time.time()) - 49 * 3600
+        svc._fetch_history = lambda ch, hours=48: [old, _raw(2, "新闻。")]
+        svc.translator.translate = lambda text: "번역"
+        st = svc.stores["global"]
+        svc._refresh("global", st)
+        assert list(st.items) == [2]
     finally:
         svc.stop()

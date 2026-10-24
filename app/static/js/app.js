@@ -26,6 +26,7 @@
 
   const POLL_MS = Math.max(3000, Number(boot.pollMs) || 5000);
   const MAX_BACKOFF = 60000;
+  const RETENTION_H = Math.max(1, Number(boot.retentionH) || 48);
   const CLAMP_LEN = 220;
   const KST = "Asia/Seoul";
 
@@ -178,7 +179,9 @@
         nodes.delete(it.id); // 번역 갱신분 — 다시 그리도록 캐시 무효화
       }
     }
-    // 서버 보관 상한과 맞춤(클라이언트 메모리 상한, 3일치 이상 수용)
+    // 서버 보관 기간(기본 48시간)과 맞춤 — 지난 항목은 화면에서도 제거
+    const cutoff = Date.now() / 1000 - RETENTION_H * 3600;
+    for (const [id, it] of st.items) if (it.ts < cutoff) { st.items.delete(id); clientTr.delete(id); }
     if (st.items.size > 1500) {
       const keep = [...st.items.values()].sort(byTimeDesc).slice(0, 1500);
       st.items = new Map(keep.map((x) => [x.id, x]));
@@ -332,7 +335,9 @@
   // 결과는 이 화면에서만 쓰며 서버로 보내지 않음(위변조 경로 차단). 서버 번역이 오면 그쪽이 우선.
   const clientTr = new Map(); // id -> { title, body }
   const trQueue = [], trQueued = new Set();
-  const TR_MAX_QUEUE = 40, TR_CONCURRENCY = 2, TR_CHUNK = 450;
+  // 차단(429) 방지: 한 번에 1건, 요청 간 최소 1.5초 간격, 실패 시 30초→최대 10분 백오프
+  const TR_MAX_QUEUE = 20, TR_CONCURRENCY = 1, TR_CHUNK = 450, TR_GAP_MS = 1500;
+  let trFails = 0, trLastReq = 0;
   const HAN = /[\u3400-\u9fff\uf900-\ufaff]/, HANGUL = /[\uac00-\ud7a3]/;
   let trBusy = 0, trBlockedUntil = 0, trRetryT = 0;
 
@@ -367,10 +372,12 @@
       trBusy++;
       translateItemInBrowser(it).then((res) => {
         trQueued.delete(id);
+        trFails = 0;
         if (res) { clientTr.set(id, res); scheduleRender(); }
       }, () => {
         trQueued.delete(id);
-        trBlockedUntil = Date.now() + 30000; // 차단·오류 시 30초 휴식 후 재시도
+        trFails++;
+        trBlockedUntil = Date.now() + Math.min(600000, 30000 * 2 ** (trFails - 1));
         scheduleRender();
       }).finally(() => { trBusy--; pumpTranslate(); });
     }
@@ -399,6 +406,9 @@
   }
 
   async function fetchJson(url, opts = {}) {
+    const gap = trLastReq + TR_GAP_MS - Date.now();
+    if (gap > 0) await new Promise((r) => setTimeout(r, gap));
+    trLastReq = Date.now();
     const ctrl = new AbortController();
     const to = setTimeout(() => ctrl.abort(), 8000);
     try {

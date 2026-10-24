@@ -94,7 +94,7 @@
     </article>
   </template>
 
-  <script id="boot" type="application/json">{{ {"channel": default_channel, "pollMs": poll_ms} | tojson }}</script>
+  <script id="boot" type="application/json">{{ {"channel": default_channel, "pollMs": poll_ms, "retentionH": retention_h} | tojson }}</script>
   <script src="{{ url_for('static', filename='js/app.js', v=asset_ver) }}" defer></script>
 </body>
 </html>

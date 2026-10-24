@@ -301,9 +301,9 @@ class FeedService:
             raise ValueError("unexpected payload")
         return items
 
-    def _fetch_history(self, channel_id: str, days: int = 3) -> list:
-        """최근 3일치 속보를 역순 페이징하며 수집."""
-        cutoff = time.time() - days * 86400
+    def _fetch_history(self, channel_id: str, hours: int = 48) -> list:
+        """최근 hours 시간치 속보를 역순 페이징하며 수집."""
+        cutoff = time.time() - hours * 3600
         all_items = []
         cursor = ""
         for _ in range(5):
@@ -354,7 +354,7 @@ class FeedService:
             self._update_stock_titles()
             try:
                 if first:
-                    raw = self._fetch_history(self.channels[key]["id"], days=3)
+                    raw = self._fetch_history(self.channels[key]["id"], hours=self.cfg["RETENTION_HOURS"])
                 else:
                     raw = self._fetch(self.channels[key]["id"])
                 st.error = ""
@@ -380,6 +380,14 @@ class FeedService:
                         st.seq += 1
                         it["seq"] = st.seq
                         st.items[it["id"]] = it
+
+                # 보관 기간(기본 48시간) 지난 항목 제거
+                cutoff = time.time() - self.cfg["RETENTION_HOURS"] * 3600
+                expired = [iid for iid, it in st.items.items() if it["ts"] < cutoff]
+                for iid in expired:
+                    del st.items[iid]
+                if expired:
+                    st.seq += 1
 
                 # 보관 상한 유지 — 오래된 항목부터 제거
                 overflow = len(st.items) - self.cfg["MAX_ITEMS_PER_CHANNEL"]

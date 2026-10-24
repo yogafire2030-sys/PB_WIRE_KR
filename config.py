@@ -26,6 +26,7 @@ class Config:
     FETCH_LIMIT = _int("FETCH_LIMIT", 50, 5, 100)          # 1회 수집 건수
     MAX_ITEMS_PER_CHANNEL = _int("MAX_ITEMS_PER_CHANNEL", 1000, 50, 5000)
     CHANNEL_IDLE_SECONDS = _int("CHANNEL_IDLE_SECONDS", 180, 30, 3600)
+    RETENTION_HOURS = _int("RETENTION_HOURS", 48, 1, 168)  # 이 시간보다 오래된 속보는 제외
     HTTP_TIMEOUT = _int("HTTP_TIMEOUT", 8, 2, 30)
 
     # ── 번역 ──────────────────────────────────────────────

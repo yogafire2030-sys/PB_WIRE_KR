@@ -17,6 +17,7 @@ def index():
     return render_template("index.html", channels=channels,
                            default_channel=cfg["DEFAULT_CHANNEL"],
                            indices=[{"key": k, "name": n} for k, n, *_ in INDICES],
+                           retention_h=cfg["RETENTION_HOURS"],
                            poll_ms=5000)
 
 
