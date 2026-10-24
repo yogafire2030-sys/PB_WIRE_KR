@@ -7,7 +7,7 @@
   <meta name="description" content="7×24 실시간 속보 한국어 번역">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_ver) }}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23131c2e'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23e5484d'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -95,6 +95,6 @@
   </template>
 
   <script id="boot" type="application/json">{{ {"channel": default_channel, "pollMs": poll_ms} | tojson }}</script>
-  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js', v=asset_ver) }}" defer></script>
 </body>
 </html>

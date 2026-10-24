@@ -24,6 +24,12 @@ def create_app(config_object=Config, start_poller: bool = True) -> Flask:
     from .routes import bp
     app.register_blueprint(bp)
 
+    # 정적 파일 캐시 무효화 — 배포 시 파일이 바뀌면 주소(?v=)도 바뀌어 브라우저가 새로 받음
+    static_dir = os.path.join(app.root_path, "static")
+    mtimes = [os.path.getmtime(os.path.join(d, f))
+              for d, _, files in os.walk(static_dir) for f in files]
+    app.jinja_env.globals["asset_ver"] = str(int(max(mtimes, default=0)))
+
     @app.after_request
     def _security_headers(resp):
         h = resp.headers

@@ -300,6 +300,10 @@
       const e = document.createElement("span"); e.className = "err"; e.textContent = ` · ${st.error}`;
       els.meta.append(e);
     }
+    if (typeof trLastError === "string" && trLastError) {
+      const e = document.createElement("span"); e.className = "err"; e.textContent = ` · 기기 번역 실패(${trLastError.slice(0, 40)})`;
+      els.meta.append(e);
+    }
   }
 
   // ── 보조 ──────────────────────────────────────────────
@@ -328,7 +332,7 @@
   // 결과는 이 화면에서만 쓰며 서버로 보내지 않음(위변조 경로 차단). 서버 번역이 오면 그쪽이 우선.
   const clientTr = new Map(); // id -> { title, body }
   const trQueue = [], trQueued = new Set();
-  const TR_MAX_QUEUE = 40, TR_CONCURRENCY = 2, TR_CHUNK = 1000;
+  const TR_MAX_QUEUE = 40, TR_CONCURRENCY = 2, TR_CHUNK = 450;
   const HAN = /[\u3400-\u9fff\uf900-\ufaff]/, HANGUL = /[\uac00-\ud7a3]/;
   let trBusy = 0, trBlockedUntil = 0, trRetryT = 0;
 
@@ -366,7 +370,8 @@
         if (res) { clientTr.set(id, res); scheduleRender(); }
       }, () => {
         trQueued.delete(id);
-        trBlockedUntil = Date.now() + 60000; // 차단·오류 시 1분 휴식 후 재시도
+        trBlockedUntil = Date.now() + 30000; // 차단·오류 시 30초 휴식 후 재시도
+        scheduleRender();
       }).finally(() => { trBusy--; pumpTranslate(); });
     }
   }
@@ -377,35 +382,68 @@
     return title || body ? { title, body } : null;
   }
 
-  async function gtx(text) {
-    if (!HAN.test(text)) return text;
+  // 긴 글은 문장 경계에서 TR_CHUNK 이하로 분할(GET URL 길이·MyMemory 500자 제한 대응)
+  function splitText(text) {
     const parts = [];
-    for (let i = 0; i < text.length; i += TR_CHUNK) {
-      // 문장 경계에서 자르기
+    let i = 0;
+    while (i < text.length) {
       let end = Math.min(text.length, i + TR_CHUNK);
       if (end < text.length) {
-        const cut = Math.max(text.lastIndexOf("。", end), text.lastIndexOf("\n", end));
-        if (cut > i + 200) end = cut + 1;
+        const cut = Math.max(text.lastIndexOf("。", end - 1), text.lastIndexOf("\n", end - 1));
+        if (cut > i + 100) end = cut + 1;
       }
       parts.push(text.slice(i, end));
-      i = end - TR_CHUNK;
+      i = end;
     }
+    return parts;
+  }
+
+  async function fetchJson(url, opts = {}) {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const res = await fetch(url, { ...opts, signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.json();
+    } finally { clearTimeout(to); }
+  }
+
+  const GTX = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=ko&dt=t";
+  const gtxParse = (data) => Array.isArray(data?.[0])
+    ? data[0].map((s) => (Array.isArray(s) && typeof s[0] === "string" ? s[0] : "")).join("") : "";
+  // 엔진 순서: Google GET → Google POST → MyMemory (모두 사전요청(OPTIONS) 없는 단순 요청)
+  const BROWSER_ENGINES = [
+    async (q) => gtxParse(await fetchJson(GTX + "&q=" + encodeURIComponent(q))),
+    async (q) => gtxParse(await fetchJson(GTX, { method: "POST", body: new URLSearchParams({ q }) })),
+    async (q) => {
+      const d = await fetchJson("https://api.mymemory.translated.net/get?langpair=zh-CN%7Cko&q=" + encodeURIComponent(q));
+      if (Number(d?.responseStatus) !== 200) throw new Error("MyMemory " + d?.responseStatus);
+      return String(d?.responseData?.translatedText || "");
+    },
+  ];
+  let trEngine = 0, trLastError = "";
+
+  async function gtx(text) {
+    if (!HAN.test(text)) return text;
     let out = "";
-    for (const part of parts) {
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 8000);
-      try {
-        const res = await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=ko&dt=t", {
-          method: "POST", signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer",
-          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-          body: "q=" + encodeURIComponent(part),
-        });
-        if (!res.ok) throw new Error(String(res.status));
-        const data = await res.json();
-        const seg = Array.isArray(data?.[0]) ? data[0].map((s) => (Array.isArray(s) && typeof s[0] === "string" ? s[0] : "")).join("") : "";
-        if (!HANGUL.test(seg)) throw new Error("invalid");
-        out += seg;
-      } finally { clearTimeout(to); }
+    for (const part of splitText(text)) {
+      let seg = "", lastErr = null;
+      // 마지막으로 성공한 엔진부터 시도
+      for (let k = 0; k < BROWSER_ENGINES.length && !seg; k++) {
+        const idx = (trEngine + k) % BROWSER_ENGINES.length;
+        try {
+          const r = (await BROWSER_ENGINES[idx](part)).trim();
+          if (HANGUL.test(r) && !/MYMEMORY WARNING/i.test(r)) { seg = r; trEngine = idx; }
+          else lastErr = new Error("invalid result");
+        } catch (e) { lastErr = e; }
+      }
+      if (!seg) {
+        trLastError = String(lastErr?.message || lastErr || "error");
+        console.warn("[기기 번역 실패]", trLastError);
+        throw lastErr || new Error("translate failed");
+      }
+      trLastError = "";
+      out += seg + (/\n\s*$/.test(part) ? "\n" : " ");
     }
     return out.trim();
   }
