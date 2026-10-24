@@ -1,13 +1,15 @@
 # PB수첩 글로벌 속보 — 华尔街见闻 실시간 속보 한국어판
 
 [华尔街见闻 7×24 快讯](https://wallstreetcn.com/live/global)을 주기적으로 받아와 **한국어로 번역해 실시간으로 보여주는 Flask 웹앱**입니다.
-화면 상단에는 **주요 지수 6종(S&P 500 · NASDAQ 100 · NIKKEI 225 · CSI 300 · HSCEI · KOSPI)** 실시간 시세가 표시됩니다.
+화면 상단에는 **주요 지수 6종(S&P 500 · NASDAQ 100 · NIKKEI 225 · CSI 300 · HSCEI · KOSPI) + 원달러 환율 + 금(COMEX 선물)** 실시간 시세와 **최근 6개월 추이 차트**가 표시됩니다.
 
 ## 주요 기능
 - **실시간 속보**: 서버가 10초마다 원본을 수집하고, 화면은 5초마다 *변경분만* 받아와 반영 (새 속보는 잠깐 하이라이트)
-- **주요 지수 시세 바**: 현재가 · 전일 대비 · 등락률 · 거래소 현지 시각(`LAST | 2:12:10 PM JST`)
+- **시세 바(8종)**: 현재가 · 전일 대비 · 등락률 · 거래소 현지 시각(`LAST | 2:12:10 PM JST`) · **6개월 추이 차트와 6개월 수익률**
+  - PC·태블릿은 4칸 × 2줄, 휴대폰은 옆으로 넘겨 보는 한 줄
   - **상승 = 빨강, 하락 = 초록**, 장 마감 후에는 `CLOSE` 표시, 값이 바뀌면 깜빡임 효과
-  - 1차 Yahoo Finance → 실패 시 네이버 증권으로 자동 전환, 둘 다 실패하면 마지막 값을 흐리게 유지
+  - 1차 Yahoo Finance → 실패 시 네이버 증권으로 자동 전환(지수), 모두 실패하면 마지막 값을 흐리게 유지
+  - 6개월 일봉은 30분마다만 갱신하고, 차트 마지막 점은 실시간 가격으로 이어 그림
 - **중요 뉴스만 보기**, 키워드 검색(한글·중국어 동시, 하이라이트), 복사 · 출처 링크
 - 중국 A주/홍콩 개별 종목 공시성 뉴스 자동 제외
 - 다크/라이트 테마, 모바일 대응, 마지막 설정 기억
@@ -23,11 +25,11 @@ pb_wire_kr/
 ├── README.md
 ├── app/
 │   ├── __init__.py         # 앱 팩토리, 보안 헤더, 수집 스레드 시작
-│   ├── routes.py           # /  ·  /api/news  ·  /api/market  ·  /api/status
+│   ├── routes.py           # /  ·  /api/news  ·  /api/market  ·  /api/market/history  ·  /api/status
 │   ├── services/
 │   │   ├── feed.py         # 속보 수집 · 신규분 번역 · 재시도(백오프) · 변경분 제공
 │   │   ├── translator.py   # 다중 번역 엔진 + 결과 검증 + 서킷 브레이커 + LRU 캐시
-│   │   └── market.py       # 주요 지수 시세 수집(Yahoo → 네이버 폴백)
+│   │   └── market.py       # 지수·환율·금 시세 + 6개월 추이(Yahoo → 네이버 폴백)
 │   ├── templates/index.html
 │   └── static/
 │       ├── css/style.css
@@ -95,7 +97,7 @@ python run.py
 ## 확인 · 문제 해결
 - 상태 확인: `/api/status` — 엔진별 성공/실패 횟수와 쿨다운, 미번역 건수, 마지막 수집 시각
   - 모든 무료 엔진의 `fail`이 계속 늘어나면 서버 IP가 차단된 상태 → **DeepL/Azure 키 등록**
-- 시세 확인: `/api/market`
+- 시세 확인: `/api/market`, 6개월 추이: `/api/market/history`
 - 테스트: `pip install pytest && pytest` (실제 엔진 호출 테스트는 `RUN_NETWORK_TESTS=1`)
 
 ## 유의사항

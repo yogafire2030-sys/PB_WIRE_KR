@@ -1,4 +1,4 @@
-"""라우트 — 화면 1개 + JSON API 3개."""
+"""라우트 — 화면 1개 + JSON API 4개."""
 from flask import Blueprint, abort, current_app, jsonify, render_template, request
 
 from .services.market import INDICES
@@ -34,6 +34,11 @@ def api_news():
 @bp.get("/api/market")
 def api_market():
     return jsonify(current_app.extensions["market"].snapshot())
+
+
+@bp.get("/api/market/history")
+def api_market_history():
+    return jsonify(current_app.extensions["market"].history())
 
 
 @bp.get("/api/status")

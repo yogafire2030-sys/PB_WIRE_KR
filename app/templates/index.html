@@ -32,13 +32,17 @@
     </div>
   </header>
 
-  <section class="mktbar" aria-label="주요 지수">
+  <section class="mktbar" aria-label="주요 지수 · 환율 · 금">
     <div class="wrap wrap--wide mkt" id="mkt">
       {% for ix in indices %}
-      <div class="q is-loading" data-key="{{ ix.key }}" role="group" aria-label="{{ ix.name }}">
+      <div class="q is-loading is-nohist" data-key="{{ ix.key }}" role="group" aria-label="{{ ix.name }}">
         <div class="q__row"><span class="q__name">{{ ix.name }}</span><span class="q__price">--</span></div>
         <div class="q__chg"><span class="q__arrow" aria-hidden="true"></span><span class="q__diff"></span><span class="q__pct"></span></div>
         <div class="q__time">불러오는 중</div>
+        <div class="q__spark" aria-hidden="true">
+          <svg viewBox="0 0 100 30" preserveAspectRatio="none"><path class="q__area" d=""/><path class="q__line" d=""/></svg>
+        </div>
+        <div class="q__6m"><span>6M</span><span class="q__6mpct"></span></div>
       </div>
       {% endfor %}
     </div>

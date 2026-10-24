@@ -1,8 +1,9 @@
-"""주요 지수 실시간 시세 서비스.
+"""주요 지수·환율·금 실시간 시세 + 6개월 추이 서비스.
 
-- 1차 소스: Yahoo Finance chart API / 2차(폴백): 네이버 증권 API
+- 1차 소스: Yahoo Finance chart API / 2차(폴백): 네이버 증권 API(지수만)
 - 백그라운드 스레드 1개가 '최근 화면에서 조회된 경우에만' 주기적으로 수집 → 접속자가 없으면 호출 0
-- 6개 지수를 병렬 수집, 결과는 불변 스냅샷(list)으로 교체 → 읽기 시 락 불필요
+- 시세는 병렬 수집, 결과는 불변 스냅샷(list)으로 교체 → 읽기 시 락 불필요
+- 6개월 일봉은 30분마다만 갱신(시세 폴링과 분리 → 전송량 최소)
 - 수집 실패 시 직전 값을 유지(stale 표시)해 화면이 비지 않음
 """
 from __future__ import annotations
@@ -19,7 +20,7 @@ from requests.adapters import HTTPAdapter
 
 log = logging.getLogger(__name__)
 
-# key, 표시명, Yahoo 심볼, 네이버 코드, 네이버 구분, 거래소 시간대
+# key, 표시명, Yahoo 심볼, 네이버 코드(None=폴백 없음), 네이버 구분, 표시 시간대
 INDICES = (
     ("SPX", "S&P 500", "^GSPC", ".INX", "world", "America/New_York"),
     ("NDX", "NASDAQ 100", "^NDX", ".NDX", "world", "America/New_York"),
@@ -27,10 +28,13 @@ INDICES = (
     ("CSI300", "CSI 300", "000300.SS", ".CSI300", "world", "Asia/Shanghai"),
     ("HSCEI", "HSCEI", "^HSCE", ".HSCE", "world", "Asia/Hong_Kong"),
     ("KOSPI", "KOSPI", "^KS11", "KOSPI", "domestic", "Asia/Seoul"),
+    ("USDKRW", "USD/KRW", "KRW=X", None, "", "Asia/Seoul"),
+    ("GOLD", "GOLD", "GC=F", None, "", "America/New_York"),
 )
 
 _YAHOO_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
 ACTIVE_SECONDS = 120  # 마지막 조회 후 이 시간 동안만 수집
+HISTORY_TTL = 1800    # 6개월 일봉 갱신 주기(초)
 
 
 def _num(v) -> float:
@@ -74,6 +78,21 @@ def parse_yahoo(payload: dict, key: str, name: str, tz_name: str, now: float) ->
     return _quote(key, name, price, prev, ts, tz_name, is_open, "yahoo")
 
 
+def parse_history(payload: dict) -> dict:
+    """Yahoo 6개월 일봉 → {"t": [epoch...], "c": [close...]} (결측치 제거)."""
+    res = payload["chart"]["result"][0]
+    ts = res.get("timestamp") or []
+    closes = ((res.get("indicators") or {}).get("quote") or [{}])[0].get("close") or []
+    t, c = [], []
+    for x, y in zip(ts, closes):
+        if isinstance(y, (int, float)) and y > 0:
+            t.append(int(x))
+            c.append(round(float(y), 4))
+    if len(c) < 2:
+        raise ValueError("history too short")
+    return {"t": t, "c": c}
+
+
 def parse_naver(payload: dict, key: str, name: str, tz_name: str, now: float) -> dict:
     price = _num(payload["closePrice"])
     chg = _num(payload["compareToPreviousClosePrice"])
@@ -105,6 +124,8 @@ class MarketService:
         self.pool = ThreadPoolExecutor(max_workers=len(INDICES), thread_name_prefix="mkt")
         self._snapshot: list[dict] = []
         self._updated = 0.0
+        self._history: dict[str, dict] = {}
+        self._history_at = 0.0
         self._last_access = 0.0
         self._wake = threading.Event()
         self._stop = threading.Event()
@@ -134,6 +155,10 @@ class MarketService:
             self._wake.set()  # 쉬고 있었다면 즉시 수집
         return {"updated": int(self._updated), "interval": self.interval,
                 "items": self._snapshot}
+
+    def history(self) -> dict:
+        self.snapshot()  # 조회 활동으로 기록(수집 시작 트리거)
+        return {"updated": int(self._history_at), "items": self._history}
 
     # ── internals ────────────────────────────────────────
     def _loop(self) -> None:
@@ -165,6 +190,35 @@ class MarketService:
         if snap:
             self._snapshot = snap  # 참조 교체(원자적)
             self._updated = time.time()
+        self._refresh_history()
+
+    def _refresh_history(self) -> None:
+        now = time.time()
+        missing = len(self._history) < len(INDICES)
+        # 빠진 종목이 있으면 5분 뒤 재시도, 모두 있으면 30분 주기
+        if now - self._history_at < (300 if missing else HISTORY_TTL):
+            return
+        self._history_at = now
+        results = list(self.pool.map(self._fetch_history, INDICES))
+        hist = dict(self._history)
+        for spec, h in zip(INDICES, results):
+            if h is not None:
+                hist[spec[0]] = h
+        self._history = hist
+
+    def _fetch_history(self, spec) -> dict | None:
+        ysym = spec[2]
+        for host in _YAHOO_HOSTS:
+            try:
+                r = self.s.get(f"https://{host}/v8/finance/chart/{ysym}",
+                               params={"range": "6mo", "interval": "1d"},
+                               timeout=self.timeout)
+                r.raise_for_status()
+                return parse_history(r.json())
+            except Exception as e:
+                log.debug("6개월 추이 실패[%s@%s]: %s", spec[0], host, type(e).__name__)
+        log.warning("6개월 추이 수집 실패[%s]", spec[0])
+        return None
 
     def _fetch_one(self, spec) -> dict | None:
         key, name, ysym, ncode, nkind, tz_name = spec
@@ -178,6 +232,9 @@ class MarketService:
                 return parse_yahoo(r.json(), key, name, tz_name, now)
             except Exception as e:
                 log.debug("Yahoo 시세 실패[%s@%s]: %s", key, host, type(e).__name__)
+        if not ncode:
+            log.warning("시세 수집 실패[%s]", key)
+            return None
         try:
             url = (f"https://m.stock.naver.com/api/index/{ncode}/basic" if nkind == "domestic"
                    else f"https://api.stock.naver.com/index/{ncode}/basic")

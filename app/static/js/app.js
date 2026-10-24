@@ -426,6 +426,8 @@
         price: el.querySelector(".q__price"), diff: el.querySelector(".q__diff"),
         pct: el.querySelector(".q__pct"), arrow: el.querySelector(".q__arrow"),
         time: el.querySelector(".q__time"),
+        line: el.querySelector(".q__line"), area: el.querySelector(".q__area"),
+        pct6: el.querySelector(".q__6mpct"), hist: null,
       });
     }
   }
@@ -487,8 +489,51 @@
       el.classList.remove("is-tick"); void el.offsetWidth; el.classList.add("is-tick");
     }
     t.last = q.price;
+    drawSpark(t);
+  }
+
+  // ── 6개월 추이(스파크라인) ────────────────────────────
+  let histTimer = null;
+  async function loadHistory() {
+    clearTimeout(histTimer);
+    let next = 30 * 60000;
+    try {
+      const res = await fetch("/api/market/history", { cache: "no-store", credentials: "same-origin" });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      const items = data && typeof data.items === "object" ? data.items : {};
+      let n = 0;
+      for (const [key, t] of tiles) {
+        const h = items[key];
+        const c = Array.isArray(h?.c) ? h.c.map(Number).filter(Number.isFinite) : [];
+        if (c.length >= 2) { t.hist = c; n++; drawSpark(t); }
+      }
+      if (n < tiles.size) next = 20000; // 서버 첫 수집 전이거나 일부 실패 — 잠시 후 재시도
+    } catch { next = 60000; }
+    histTimer = setTimeout(loadHistory, next);
+  }
+
+  function drawSpark(t) {
+    const h = t.hist;
+    t.el.classList.toggle("is-nohist", !h);
+    if (!h) return;
+    // 마지막 점은 실시간 가격으로 대체(오늘 봉)
+    const c = t.last !== null ? h.slice(0, -1).concat(t.last) : h;
+    let lo = Infinity, hi = -Infinity;
+    for (const v of c) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    const span = hi - lo || 1, n = c.length - 1;
+    let d = "";
+    for (let i = 0; i <= n; i++) {
+      const x = (i / n) * 100, y = 28 - ((c[i] - lo) / span) * 26;
+      d += (i ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2);
+    }
+    t.line.setAttribute("d", d);
+    t.area.setAttribute("d", d + "L100 30L0 30Z");
+    const p6 = ((c[n] - c[0]) / c[0]) * 100;
+    t.pct6.textContent = (p6 > 0 ? "+" : p6 < 0 ? "-" : "") + fmtNum.format(Math.abs(p6)) + "%";
   }
 
   poll(true);
   pollMarket();
+  if (tiles.size) loadHistory();
 })();
