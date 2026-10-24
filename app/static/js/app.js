@@ -109,14 +109,15 @@
       btn.textContent = clamped ? "더보기" : "접기";
       art.dataset.open = clamped ? "" : "1";
     } else if (act === "copy") {
-      const t = [`[${fmtTime.format(it.ts * 1000)}] ${it.title_ko || it.title_zh || ""}`.trim(), it.body_ko || it.body_zh || ""].filter(Boolean).join("\n");
+      const ko = koOf(it);
+      const t = [`[${fmtTime.format(it.ts * 1000)}] ${ko.title || it.title_zh || ""}`.trim(), ko.body || it.body_zh || ""].filter(Boolean).join("\n");
       navigator.clipboard?.writeText(t).then(() => flash(btn, "복사됨"), () => flash(btn, "실패"));
     }
   });
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) { stopPolling(); stopMarket(); setLive("paused", "일시정지"); }
-    else { poll(true); pollMarket(); }
+    else { poll(true); pollMarket(); pumpTranslate(); }
   });
 
   // ── 폴링 ──────────────────────────────────────────────
@@ -200,7 +201,8 @@
     const list = [...st.items.values()].filter((it) => {
       if (onlyHot && !it.important) return false;
       if (!query) return true;
-      return (it.title_ko + "\n" + it.body_ko + "\n" + it.title_zh + "\n" + it.body_zh).toLowerCase().includes(query);
+      const ko = koOf(it);
+      return (ko.title + "\n" + ko.body + "\n" + it.title_zh + "\n" + it.body_zh).toLowerCase().includes(query);
     }).sort(byTimeDesc);
 
     const frag = document.createDocumentFragment();
@@ -217,7 +219,9 @@
       }
       let node = nodes.get(it.id);
       // 데이터 객체가 바뀌었으면(번역 완료·서버 재시작 후 reset 등) 다시 그림
-      if (!node || node.dataset.q !== query || node._it !== it) { node = buildItem(it); nodes.set(it.id, node); }
+      if (!node || node.dataset.q !== query || node._it !== it || node._ko !== clientTr.get(it.id)) {
+        node = buildItem(it); nodes.set(it.id, node);
+      }
       if (added.has(it.id)) {
         node.classList.remove("is-fresh"); void node.offsetWidth; node.classList.add("is-fresh");
       }
@@ -225,6 +229,7 @@
       frag.appendChild(node);
     }
     for (const id of nodes.keys()) if (!alive.has(id)) nodes.delete(id); // 메모리 누수 방지
+    queueClientTranslate(list);
     els.feed.replaceChildren(frag);
     els.empty.hidden = list.length > 0;
     renderMeta(st, list.length);
@@ -242,6 +247,7 @@
     node.dataset.id = String(it.id);
     node.dataset.q = query;
     node._it = it;
+    node._ko = clientTr.get(it.id);
     if (it.important) node.classList.add("is-hot");
     const time = node.querySelector(".item__time");
     time.textContent = fmtTime.format(it.ts * 1000);
@@ -249,16 +255,17 @@
 
     const title = node.querySelector(".item__title");
     const text = node.querySelector(".item__text");
-    paint(title, it.title_ko || it.title_zh || "속보");
-    paint(text, it.body_ko || it.body_zh || "");
-    if (!it.translated) {
+    const ko = koOf(it);
+    paint(title, ko.title || it.title_zh || "속보");
+    paint(text, ko.body || it.body_zh || "");
+    if (!it.translated && !node._ko) {
       const tag = document.createElement("span");
       tag.className = "tag"; tag.textContent = "번역 중";
       title.appendChild(tag);
     }
 
     const more = node.querySelector('[data-act="more"]');
-    if ((it.body_ko || "").length > CLAMP_LEN) node.classList.add("is-clamped");
+    if ((ko.body || "").length > CLAMP_LEN) node.classList.add("is-clamped");
     else more.hidden = true;
     const a = node.querySelector("a.link-btn");
     a.href = /^https:\/\/wallstreetcn\.com\//.test(it.url) ? it.url : "https://wallstreetcn.com/live/global";
@@ -314,6 +321,99 @@
     const now = new Date();
     els.clock.textContent = fmtClock.format(now);
     els.today.textContent = fmtDay.format(now);
+  }
+
+  // ── 브라우저 번역 폴백 ─────────────────────────────────
+  // 서버(클라우드 IP)의 무료 번역이 차단된 경우, 보고 있는 기기에서 직접 번역해 표시.
+  // 결과는 이 화면에서만 쓰며 서버로 보내지 않음(위변조 경로 차단). 서버 번역이 오면 그쪽이 우선.
+  const clientTr = new Map(); // id -> { title, body }
+  const trQueue = [], trQueued = new Set();
+  const TR_MAX_QUEUE = 40, TR_CONCURRENCY = 2, TR_CHUNK = 1000;
+  const HAN = /[\u3400-\u9fff\uf900-\ufaff]/, HANGUL = /[\uac00-\ud7a3]/;
+  let trBusy = 0, trBlockedUntil = 0, trRetryT = 0;
+
+  function koOf(it) {
+    if (it.translated) return { title: it.title_ko || "", body: it.body_ko || "" };
+    const c = clientTr.get(it.id);
+    return { title: it.title_ko || c?.title || "", body: it.body_ko || c?.body || "" };
+  }
+
+  function queueClientTranslate(list) {
+    for (const it of list) {
+      if (trQueue.length >= TR_MAX_QUEUE) break;
+      if (it.translated || clientTr.has(it.id) || trQueued.has(it.id)) continue;
+      trQueue.push(it.id); trQueued.add(it.id);
+    }
+    // 메모리 상한 — 서버 번역이 끝났거나 사라진 항목의 결과는 정리
+    if (clientTr.size > 300) {
+      const items = store[channel]?.items;
+      for (const id of clientTr.keys()) { const x = items?.get(id); if (!x || x.translated) clientTr.delete(id); }
+    }
+    pumpTranslate();
+  }
+
+  function pumpTranslate() {
+    if (document.hidden) return;
+    const wait = trBlockedUntil - Date.now();
+    if (wait > 0) { clearTimeout(trRetryT); trRetryT = setTimeout(pumpTranslate, wait); return; }
+    while (trBusy < TR_CONCURRENCY && trQueue.length) {
+      const id = trQueue.shift();
+      const it = store[channel]?.items.get(id);
+      if (!it || it.translated) { trQueued.delete(id); continue; }
+      trBusy++;
+      translateItemInBrowser(it).then((res) => {
+        trQueued.delete(id);
+        if (res) { clientTr.set(id, res); scheduleRender(); }
+      }, () => {
+        trQueued.delete(id);
+        trBlockedUntil = Date.now() + 60000; // 차단·오류 시 1분 휴식 후 재시도
+      }).finally(() => { trBusy--; pumpTranslate(); });
+    }
+  }
+
+  async function translateItemInBrowser(it) {
+    const title = it.title_ko || (it.title_zh ? await gtx(it.title_zh) : "");
+    const body = it.body_ko || (it.body_zh ? await gtx(it.body_zh) : "");
+    return title || body ? { title, body } : null;
+  }
+
+  async function gtx(text) {
+    if (!HAN.test(text)) return text;
+    const parts = [];
+    for (let i = 0; i < text.length; i += TR_CHUNK) {
+      // 문장 경계에서 자르기
+      let end = Math.min(text.length, i + TR_CHUNK);
+      if (end < text.length) {
+        const cut = Math.max(text.lastIndexOf("。", end), text.lastIndexOf("\n", end));
+        if (cut > i + 200) end = cut + 1;
+      }
+      parts.push(text.slice(i, end));
+      i = end - TR_CHUNK;
+    }
+    let out = "";
+    for (const part of parts) {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 8000);
+      try {
+        const res = await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=ko&dt=t", {
+          method: "POST", signal: ctrl.signal, credentials: "omit", referrerPolicy: "no-referrer",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: "q=" + encodeURIComponent(part),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const data = await res.json();
+        const seg = Array.isArray(data?.[0]) ? data[0].map((s) => (Array.isArray(s) && typeof s[0] === "string" ? s[0] : "")).join("") : "";
+        if (!HANGUL.test(seg)) throw new Error("invalid");
+        out += seg;
+      } finally { clearTimeout(to); }
+    }
+    return out.trim();
+  }
+
+  let renderRaf = 0;
+  function scheduleRender() {
+    if (renderRaf) return;
+    renderRaf = requestAnimationFrame(() => { renderRaf = 0; render(); });
   }
 
   // ── 주요 지수 ─────────────────────────────────────────
