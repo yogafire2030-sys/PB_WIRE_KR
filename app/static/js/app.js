@@ -489,14 +489,13 @@
       el.classList.remove("is-tick"); void el.offsetWidth; el.classList.add("is-tick");
     }
     t.last = q.price;
-    drawSpark(t);
   }
 
   // ── 6개월 추이(스파크라인) ────────────────────────────
   let histTimer = null;
   async function loadHistory() {
     clearTimeout(histTimer);
-    let next = 30 * 60000;
+    let next = 15 * 60000;
     try {
       const res = await fetch("/api/market/history", { cache: "no-store", credentials: "same-origin" });
       if (!res.ok) throw new Error(String(res.status));
@@ -517,8 +516,7 @@
     const h = t.hist;
     t.el.classList.toggle("is-nohist", !h);
     if (!h) return;
-    // 마지막 점은 실시간 가격으로 대체(오늘 봉)
-    const c = t.last !== null ? h.slice(0, -1).concat(t.last) : h;
+    const c = h; // 15분 주기 데이터 그대로(실시간 가격과 섞지 않음)
     let lo = Infinity, hi = -Infinity;
     for (const v of c) { if (v < lo) lo = v; if (v > hi) hi = v; }
     const span = hi - lo || 1, n = c.length - 1;

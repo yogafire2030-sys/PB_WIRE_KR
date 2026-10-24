@@ -3,7 +3,7 @@
 - 1차 소스: Yahoo Finance chart API / 2차(폴백): 네이버 증권 API(지수만)
 - 백그라운드 스레드 1개가 '최근 화면에서 조회된 경우에만' 주기적으로 수집 → 접속자가 없으면 호출 0
 - 시세는 병렬 수집, 결과는 불변 스냅샷(list)으로 교체 → 읽기 시 락 불필요
-- 6개월 일봉은 30분마다만 갱신(시세 폴링과 분리 → 전송량 최소)
+- 6개월 일봉은 15분마다만 갱신(시세 폴링과 분리 → 전송량 최소)
 - 수집 실패 시 직전 값을 유지(stale 표시)해 화면이 비지 않음
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ INDICES = (
     ("SPX", "S&P 500", "^GSPC", ".INX", "world", "America/New_York"),
     ("NDX", "NASDAQ 100", "^NDX", ".NDX", "world", "America/New_York"),
     ("N225", "NIKKEI 225", "^N225", ".N225", "world", "Asia/Tokyo"),
-    ("CSI300", "CSI 300", "000300.SS", ".CSI300", "world", "Asia/Shanghai"),
+    ("SSEC", "SHANGHAI", "000001.SS", ".SSEC", "world", "Asia/Shanghai"),
     ("HSCEI", "HSCEI", "^HSCE", ".HSCE", "world", "Asia/Hong_Kong"),
     ("KOSPI", "KOSPI", "^KS11", "KOSPI", "domestic", "Asia/Seoul"),
     ("USDKRW", "USD/KRW", "KRW=X", None, "", "Asia/Seoul"),
@@ -34,7 +34,7 @@ INDICES = (
 
 _YAHOO_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
 ACTIVE_SECONDS = 120  # 마지막 조회 후 이 시간 동안만 수집
-HISTORY_TTL = 1800    # 6개월 일봉 갱신 주기(초)
+HISTORY_TTL = 900     # 6개월 추이 갱신 주기(초) — 15분
 
 
 def _num(v) -> float:
@@ -195,7 +195,7 @@ class MarketService:
     def _refresh_history(self) -> None:
         now = time.time()
         missing = len(self._history) < len(INDICES)
-        # 빠진 종목이 있으면 5분 뒤 재시도, 모두 있으면 30분 주기
+        # 빠진 종목이 있으면 5분 뒤 재시도, 모두 있으면 15분 주기
         if now - self._history_at < (300 if missing else HISTORY_TTL):
             return
         self._history_at = now
