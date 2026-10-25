@@ -80,6 +80,21 @@ python run.py
 엔진 우선순위(auto): DeepL → Azure → Papago → Edge → Google → Bing → MyMemory
 (`TRANSLATOR=edge` 처럼 지정하면 그 엔진이 맨 앞으로 오고 나머지는 자동 폴백)
 
+## 하루하나 글 추가하기
+글 목록은 `app/data/haruhana.json` 한 파일로 관리합니다. **맨 위 글이 화면 맨 앞**에 나옵니다.
+```json
+{
+  "title": "글 제목",
+  "date": "2026-10-26",
+  "summary": "한두 줄 요약(비워도 됨)",
+  "url": "https://...notion.site/... 또는 https://www.notion.so/..."
+},
+```
+- `url`은 **Notion 주소만** 허용(그 외 주소는 자동으로 무시), `date`는 `YYYY-MM-DD` 형식 또는 빈 값
+- Notion 글은 **공유 → 웹에 게시**를 켜야 다른 사람도 볼 수 있음
+- GitHub에서 파일을 수정·커밋하면 Render가 자동 재배포
+- 주소 끝에 `#haruhana`를 붙이면 하루하나 탭이 바로 열림
+
 ## 환경변수
 | 이름 | 기본값 | 설명 |
 |---|---|---|

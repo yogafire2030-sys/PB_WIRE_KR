@@ -49,6 +49,12 @@
   </section>
 
   <main class="wrap">
+    <nav class="views" role="tablist" aria-label="화면 선택">
+      <button type="button" class="views__tab is-active" role="tab" data-view="news" aria-selected="true" aria-controls="viewNews">실시간 속보</button>
+      <button type="button" class="views__tab" role="tab" data-view="haru" aria-selected="false" aria-controls="viewHaru">하루하나 <small>{{ posts|length }}</small></button>
+    </nav>
+
+    <div class="view" id="viewNews" role="tabpanel">
     {% if youtube_id %}
     <section class="live-tv" id="liveTv" aria-label="라이브 방송">
       <div class="live-tv__head">
@@ -90,6 +96,32 @@
     </section>
 
     <p class="empty" id="empty" hidden>표시할 속보가 없습니다.</p>
+    </div>
+
+    <div class="view" id="viewHaru" role="tabpanel" hidden>
+      <header class="haru__head">
+        <h2>하루하나</h2>
+        <p>PB수첩이 매일 하나씩 정리하는 콘텐츠</p>
+      </header>
+      {% if posts %}
+      <ol class="haru">
+        {% for p in posts %}
+        <li>
+          <a class="haru__card" href="{{ p.url }}" target="_blank" rel="noopener noreferrer">
+            <span class="haru__no">{{ "%02d"|format(posts|length - loop.index0) }}</span>
+            <span class="haru__main">
+              <strong class="haru__title">{{ p.title }}</strong>
+              {% if p.summary %}<span class="haru__sum">{{ p.summary }}</span>{% endif %}
+              <span class="haru__meta">{% if p.date %}<time datetime="{{ p.date }}">{{ p.date|replace("-", ".") }}</time> · {% endif %}Notion에서 읽기 ↗</span>
+            </span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="empty">아직 등록된 글이 없습니다.</p>
+      {% endif %}
+    </div>
 
     <footer class="foot">
       뉴스의 정확성과 출처 및 번역결과에 대한 어떠한 책임도 지지 않습니다. 투자판단에 대한 책임은 전적으로 투자자 본인에게 있습니다.

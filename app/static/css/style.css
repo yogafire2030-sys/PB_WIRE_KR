@@ -94,6 +94,32 @@ button{font:inherit;color:inherit;cursor:pointer}
   .q{flex:0 0 184px;scroll-snap-align:start;padding:7px 9px 6px}
   .q__name,.q__chg{font-size:11.5px}.q__price{font-size:13px}.q__spark{height:28px}}
 
+/* ───────── View tabs ───────── */
+.views{display:flex;gap:4px;margin:20px 0 0;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--panel);width:max-content;max-width:100%}
+.views__tab{border:0;background:transparent;padding:8px 18px;border-radius:9px;font-size:14px;font-weight:700;color:var(--text-2);
+  display:flex;align-items:center;gap:6px;transition:background .15s,color .15s}
+.views__tab small{font-size:11px;font-weight:700;color:var(--muted)}
+.views__tab:hover{color:var(--text)}
+.views__tab.is-active{background:var(--text);color:var(--bg)}
+.views__tab.is-active small{color:color-mix(in srgb,var(--bg) 65%,transparent)}
+.views__tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+body[data-view="haru"] .newpill{display:none!important}
+
+/* ───────── 하루하나 ───────── */
+.haru__head{margin:22px 4px 12px}
+.haru__head h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+.haru__head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.haru{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.haru__card{display:flex;gap:16px;align-items:flex-start;padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--panel);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s}
+.haru__card:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-1px)}
+.haru__card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.haru__no{flex:none;font-size:22px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.2;min-width:34px}
+.haru__main{display:flex;flex-direction:column;gap:4px;min-width:0}
+.haru__title{font-size:16px;font-weight:700;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
+.haru__sum{font-size:14px;color:var(--text-2);line-height:1.6;word-break:keep-all}
+.haru__meta{font-size:12px;color:var(--muted);font-weight:600}
+
 /* ───────── Live TV ───────── */
 .live-tv{margin:20px 0 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);overflow:hidden}
 .live-tv__head{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 14px}

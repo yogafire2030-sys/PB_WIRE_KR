@@ -8,6 +8,7 @@ from flask import Flask
 from config import Config
 from .services.feed import FeedService
 from .services.market import MarketService
+from .services.posts import PostStore
 
 
 def create_app(config_object=Config, start_poller: bool = True) -> Flask:
@@ -20,6 +21,7 @@ def create_app(config_object=Config, start_poller: bool = True) -> Flask:
     app.extensions["feed"] = feed
     market = MarketService(app.config)
     app.extensions["market"] = market
+    app.extensions["posts"] = PostStore(os.path.join(app.root_path, "data", "haruhana.json"))
 
     from .routes import bp
     app.register_blueprint(bp)

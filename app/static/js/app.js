@@ -579,6 +579,32 @@
     t.pct6.textContent = (p6 > 0 ? "+" : p6 < 0 ? "-" : "") + fmtNum.format(Math.abs(p6)) + "%";
   }
 
+  // ── 화면 탭(실시간 속보 / 하루하나) ────────────────────
+  // 주소 끝 #haruhana 로 바로 열 수 있음. 마지막 탭은 기기에 기억
+  const viewTabs = document.querySelectorAll(".views__tab");
+  const views = { news: $("viewNews"), haru: $("viewHaru") };
+  function setView(v, remember) {
+    if (!views[v]) v = "news";
+    for (const t of viewTabs) {
+      const on = t.dataset.view === v;
+      t.classList.toggle("is-active", on);
+      t.setAttribute("aria-selected", String(on));
+    }
+    for (const [k, el] of Object.entries(views)) if (el) el.hidden = k !== v;
+    document.body.dataset.view = v;
+    window.dispatchEvent(new Event("gw-view"));
+    if (remember) {
+      try { localStorage.setItem("gw-view", v); } catch { /* 무시 */ }
+      history.replaceState(null, "", v === "haru" ? "#haruhana" : location.pathname + location.search);
+    }
+  }
+  for (const t of viewTabs) t.addEventListener("click", () => setView(t.dataset.view, true));
+  {
+    let v = location.hash === "#haruhana" ? "haru" : "news";
+    if (!location.hash) { try { v = localStorage.getItem("gw-view") || "news"; } catch { /* 무시 */ } }
+    setView(v, false);
+  }
+
   // ── 유튜브 라이브 ─────────────────────────────────────
   // 접으면 iframe 연결을 끊어 재생·네트워크·메모리 사용을 멈춤. 상태는 기기에 기억
   const tv = { box: $("liveTv"), btn: $("liveTvToggle"), frame: $("liveTvFrame") };
@@ -587,7 +613,8 @@
       tv.box.classList.toggle("is-collapsed", !open);
       tv.btn.textContent = open ? "접기" : "펼치기";
       tv.btn.setAttribute("aria-expanded", String(open));
-      const want = open ? tv.frame.dataset.src : "about:blank";
+      // 하루하나 탭을 보는 동안에는 방송 연결을 끊음(소리·데이터 사용 방지)
+      const want = open && document.body.dataset.view !== "haru" ? tv.frame.dataset.src : "about:blank";
       if (tv.frame.getAttribute("src") !== want) tv.frame.setAttribute("src", want);
       try { localStorage.setItem("gw-tv", open ? "1" : "0"); } catch { /* 저장 불가 — 무시 */ }
     };
@@ -595,6 +622,7 @@
     try { open = localStorage.getItem("gw-tv") !== "0"; } catch { /* 기본값 사용 */ }
     setTv(open);
     tv.btn.addEventListener("click", () => setTv(tv.box.classList.contains("is-collapsed")));
+    window.addEventListener("gw-view", () => setTv(!tv.box.classList.contains("is-collapsed")));
   }
 
   poll(true);

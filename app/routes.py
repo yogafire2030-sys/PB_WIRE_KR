@@ -19,6 +19,7 @@ def index():
                            indices=[{"key": k, "name": n} for k, n, *_ in INDICES],
                            retention_h=cfg["RETENTION_HOURS"],
                            youtube_id=cfg["YOUTUBE_LIVE_ID"],
+                           posts=current_app.extensions["posts"].all(),
                            poll_ms=5000)
 
 
