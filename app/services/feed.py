@@ -339,8 +339,10 @@ class FeedService:
 
     def _translate_item(self, it: dict) -> dict:
         t = self.translator
-        title_ko = it.get("title_ko") or (t.translate(it["title_zh"]) if it.get("title_zh") else "")
-        body_ko = it.get("body_ko") or (t.translate(it["body_zh"]) if it.get("body_zh") else "")
+        title, body = it.get("title_zh") or "", it.get("body_zh") or ""
+        # 제목은 본문을, 본문은 제목을 문맥으로 함께 전달(공식 API 품질 향상)
+        title_ko = it.get("title_ko") or (t.translate(title, context=body[:1000]) if title else "")
+        body_ko = it.get("body_ko") or (t.translate(body, context=title) if body else "")
         ok = (not it.get("title_zh") or bool(title_ko)) and (not it.get("body_zh") or bool(body_ko))
         return {"title_ko": title_ko, "body_ko": body_ko, "translated": ok}
 

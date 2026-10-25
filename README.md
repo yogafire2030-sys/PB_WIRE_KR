@@ -69,6 +69,13 @@ python run.py
 | Papago (NCP) | `PAPAGO_CLIENT_ID`, `PAPAGO_CLIENT_SECRET` | 유료 |
 | MyMemory | `MYMEMORY_EMAIL` (이메일만 넣으면 일 5천→5만 자) | 일 5만 자 |
 
+### DeepL 번역 품질 설정 (자동 적용)
+- 본문을 자르지 않고 **전체를 한 번에** 번역(문맥 유지)
+- 제목은 본문을, 본문은 제목을 **문맥(context)** 으로 함께 전달 — context는 사용량에 포함되지 않음
+- "중국 금융 속보 · 한국어 기사체 · 주요 용어(美联储=연준, 降息=금리 인하 등)" 배경 정보 제공
+- 고품질 모델(`prefer_quality_optimized`) 우선 사용, 미지원 시 자동 해제
+- 월 한도 소진(456) 시 1시간 쉬고 그동안 무료 엔진으로 폴백
+
 엔진 우선순위(auto): DeepL → Azure → Papago → Edge → Google → Bing → MyMemory
 (`TRANSLATOR=edge` 처럼 지정하면 그 엔진이 맨 앞으로 오고 나머지는 자동 폴백)
 

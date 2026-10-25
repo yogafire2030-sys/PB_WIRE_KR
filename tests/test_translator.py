@@ -121,3 +121,45 @@ def test_translator_live():
         assert "안녕" in result
     finally:
         t.close()
+
+
+def test_premium_engine_gets_whole_text_and_context():
+    t = Translator(_cfg(DEEPL_API_KEY="dummy:fx"))
+    seen = []
+
+    def fake_deepl(text, context=""):
+        seen.append((len(text), context))
+        return "연준, 금리 동결 발표"
+
+    try:
+        assert t.engines[0].name == "DeepL" and t.engines[0].premium
+        t.engines[0].fn = fake_deepl
+        long_text = "美联储宣布维持利率不变。" * 100
+        assert t.translate(long_text, context="美联储") == "연준, 금리 동결 발표"
+        assert seen == [(len(long_text), "美联储")]      # 분할 없이 1회, 문맥 전달
+        t.translate(long_text, context="美联储")
+        assert len(seen) == 1                           # 캐시 적중
+    finally:
+        t.close()
+
+
+def test_premium_quota_exhausted_falls_back_to_free():
+    import requests
+    t = Translator(_cfg(DEEPL_API_KEY="dummy:fx"))
+
+    def quota(text, context=""):
+        resp = requests.Response()
+        resp.status_code = 456
+        raise requests.HTTPError(response=resp)
+
+    try:
+        t.engines[0].fn = quota
+        free = next(e for e in t.engines if not e.premium)
+        free.fn = lambda text: "무료 번역"
+        for e in t.engines:
+            if not e.premium and e is not free:
+                e.until = time.time() + 999
+        assert t.translate("你好") == "무료 번역"
+        assert t.engines[0].until - time.time() > 3000  # 한도 소진 → 1시간 휴식
+    finally:
+        t.close()

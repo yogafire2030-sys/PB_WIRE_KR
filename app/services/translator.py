@@ -37,6 +37,11 @@ except Exception:  # pragma: no cover
 log = logging.getLogger(__name__)
 
 MAX_CHARS = 6000   # 항목 1건 최대 길이(수집 단계 상한과 동일)
+# DeepL `context` — 번역 대상이 아닌 배경 정보(과금 제외). 용어·문체 선택 품질을 높임
+BASE_CONTEXT = ("중국 금융 매체 华尔街见闻(월스트리트견문)의 7×24 실시간 금융·경제 속보. "
+                "한국 증권사 PB가 읽는 뉴스로, 간결한 한국어 기사체로 번역. "
+                "美联储=연준, 央行=중앙은행, 国债=국채, 降息=금리 인하, 加息=금리 인상, "
+                "港股=홍콩 증시, A股=중국 본토 증시, 美股=미국 증시, 基点=bp, 同比=전년 대비, 环比=전월 대비.")
 CHUNK_CHARS = 450  # 모든 엔진의 1회 요청 한도보다 작게(MyMemory 500자)
 
 _HAN_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
@@ -115,13 +120,13 @@ class _LRU:
 
 class _Engine:
     """엔진 + 서킷 브레이커 상태."""
-    __slots__ = ("name", "fn", "fails", "until", "ok", "ng")
+    __slots__ = ("name", "fn", "premium", "fails", "until", "ok", "ng")
 
     BASE_COOLDOWN = 15
     MAX_COOLDOWN = 600
 
-    def __init__(self, name, fn):
-        self.name, self.fn = name, fn
+    def __init__(self, name, fn, premium=False):
+        self.name, self.fn, self.premium = name, fn, premium
         self.fails = 0
         self.until = 0.0
         self.ok = 0
@@ -135,10 +140,10 @@ class _Engine:
         self.until = 0.0
         self.ok += 1
 
-    def failure(self) -> None:
+    def failure(self, cooldown: float | None = None) -> None:
         self.fails += 1
         self.ng += 1
-        cool = min(self.MAX_COOLDOWN, self.BASE_COOLDOWN * (2 ** min(self.fails - 1, 6)))
+        cool = cooldown or min(self.MAX_COOLDOWN, self.BASE_COOLDOWN * (2 ** min(self.fails - 1, 6)))
         self.until = time.time() + cool
 
 
@@ -191,24 +196,32 @@ class Translator:
             "papago": bool(self.papago_id and self.papago_secret),
             "edge": True, "google": True, "bing": True, "mymemory": True,
         }
+        # (표시명, 함수, 공식 API 여부) — 공식 API는 문맥을 함께 받아 전체 문장을 한 번에 번역
         fns = {
-            "deepl": ("DeepL", self._deepl), "azure": ("Azure", self._azure),
-            "papago": ("Papago", self._papago), "edge": ("Edge", self._edge),
-            "google": ("Google", self._google), "bing": ("Bing", self._bing_tr),
-            "mymemory": ("MyMemory", self._mymemory),
+            "deepl": ("DeepL", self._deepl, True), "azure": ("Azure", self._azure, True),
+            "papago": ("Papago", self._papago, True), "edge": ("Edge", self._edge, False),
+            "google": ("Google", self._google, False), "bing": ("Bing", self._bing_tr, False),
+            "mymemory": ("MyMemory", self._mymemory, False),
         }
         self.engines = [_Engine(*fns[n]) for n in order if available[n]]
+        self._deepl_model = True  # 품질 우선 모델 옵션 사용 가능 여부(거부되면 끔)
         self.engine_name = self.engines[0].name
         self.last_engine = ""
 
     # ── public ───────────────────────────────────────────
-    def translate(self, text: str) -> str:
-        """번역 성공 시 한국어, 실패 시 "" (호출 측에서 원문 표시 후 재시도)."""
+    def translate(self, text: str, context: str = "") -> str:
+        """번역 성공 시 한국어, 실패 시 "" (호출 측에서 원문 표시 후 재시도).
+
+        context: 같은 속보의 제목/본문 등 참고용 문맥(공식 API에만 전달, 번역되지 않음)
+        """
         text = (text or "").strip()[:MAX_CHARS]
         if not text:
             return ""
         if not _HAN_RE.search(text):  # 한자가 없으면(숫자·영문) 번역 불필요
             return text
+        ko = self._translate_premium(text, context)
+        if ko:
+            return ko
         out = []
         for chunk in split_chunks(text):
             ko = self._translate_chunk(chunk.strip())
@@ -228,6 +241,37 @@ class Translator:
             self.s.close()
 
     # ── internals ────────────────────────────────────────
+    def _translate_premium(self, text: str, context: str) -> str:
+        """공식 API: 자르지 않고 문맥과 함께 전체 번역. 결과는 원문 단위로 캐시."""
+        key = "p:" + hashlib.blake2b(text.encode("utf-8"), digest_size=16).hexdigest()
+        hit = self.cache.get(key)
+        if hit is not None:
+            return hit
+        now = time.time()
+        for eng in self.engines:
+            if not eng.premium or not eng.available(now):
+                continue
+            try:
+                out = (eng.fn(text, context) or "").strip()
+            except requests.HTTPError as e:
+                code = e.response.status_code if e.response is not None else 0
+                log.warning("번역 실패(%s): HTTP %s", eng.name, code)
+                # 456=DeepL 월 한도 소진, 401/403=키 오류 → 오래 쉬고 무료 엔진으로 폴백
+                eng.failure(3600 if code in (401, 403, 456) else None)
+                continue
+            except Exception as e:
+                log.warning("번역 실패(%s): %s", eng.name, type(e).__name__)
+                eng.failure()
+                continue
+            if is_valid_korean(text, out):
+                eng.success()
+                self.last_engine = eng.name
+                self.cache.put(key, out)
+                return out
+            log.warning("번역 결과 무효(%s) — 다음 엔진 시도", eng.name)
+            eng.failure()
+        return ""
+
     def _translate_chunk(self, chunk: str) -> str:
         if not _HAN_RE.search(chunk):
             return chunk
@@ -237,7 +281,7 @@ class Translator:
             return hit
         now = time.time()
         for eng in self.engines:
-            if not eng.available(now):
+            if eng.premium or not eng.available(now):
                 continue
             try:
                 out = (eng.fn(chunk) or "").strip()
@@ -255,18 +299,28 @@ class Translator:
         return ""
 
     # ── engines (공식 API) ───────────────────────────────
-    def _deepl(self, text: str) -> str:
+    def _deepl(self, text: str, context: str = "") -> str:
         host = "api-free.deepl.com" if self.deepl_key.endswith(":fx") else "api.deepl.com"
-        r = self.s.post(
-            f"https://{host}/v2/translate",
-            headers={"Authorization": f"DeepL-Auth-Key {self.deepl_key}"},
-            data={"text": text, "source_lang": "ZH", "target_lang": "KO"},
-            timeout=self.timeout,
-        )
+        data = {
+            "text": text, "source_lang": "ZH", "target_lang": "KO",
+            "context": (BASE_CONTEXT + ("\n" + context[:2000] if context else "")),
+            "preserve_formatting": "1",  # 줄바꿈·문장부호 유지
+        }
+        if self._deepl_model:
+            data["model_type"] = "prefer_quality_optimized"  # 차세대(고품질) 모델 우선
+        r = self.s.post(f"https://{host}/v2/translate",
+                        headers={"Authorization": f"DeepL-Auth-Key {self.deepl_key}"},
+                        data=data, timeout=self.timeout)
+        if r.status_code == 400 and self._deepl_model:  # 옵션 미지원 계정 — 끄고 재시도
+            self._deepl_model = False
+            data.pop("model_type", None)
+            r = self.s.post(f"https://{host}/v2/translate",
+                            headers={"Authorization": f"DeepL-Auth-Key {self.deepl_key}"},
+                            data=data, timeout=self.timeout)
         r.raise_for_status()
         return r.json()["translations"][0]["text"]
 
-    def _azure(self, text: str) -> str:
+    def _azure(self, text: str, context: str = "") -> str:
         headers = {"Ocp-Apim-Subscription-Key": self.azure_key}
         if self.azure_region:
             headers["Ocp-Apim-Subscription-Region"] = self.azure_region
@@ -278,7 +332,7 @@ class Translator:
         r.raise_for_status()
         return r.json()[0]["translations"][0]["text"]
 
-    def _papago(self, text: str) -> str:
+    def _papago(self, text: str, context: str = "") -> str:
         r = self.s.post(
             "https://papago.apigw.ntruss.com/nmt/v1/translation",
             headers={"X-NCP-APIGW-API-KEY-ID": self.papago_id,

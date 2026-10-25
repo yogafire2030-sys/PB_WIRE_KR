@@ -21,7 +21,7 @@ def test_failed_translation_backs_off_then_recovers():
         svc._fetch = lambda ch: []
         st = svc.stores["global"]
 
-        svc.translator.translate = lambda text: ""          # 모든 엔진 차단 상황
+        svc.translator.translate = lambda text, **kw: ""          # 모든 엔진 차단 상황
         svc._refresh("global", st)
         it = st.items[1]
         assert it["translated"] is False and it["_tries"] == 1
@@ -32,7 +32,7 @@ def test_failed_translation_backs_off_then_recovers():
         assert it["_tries"] == 1 and st.seq == seq_before
 
         it["_next"] = 0
-        svc.translator.translate = lambda text: "연준, 금리 동결 발표."
+        svc.translator.translate = lambda text, **kw: "연준, 금리 동결 발표."
         svc._refresh("global", st)
         assert it["translated"] is True and it["body_ko"].startswith("연준")
         assert st.seq > seq_before                           # 클라이언트로 갱신 전달
@@ -52,7 +52,7 @@ def test_items_older_than_retention_are_dropped():
         old = _raw(1, "旧闻。")
         old["display_time"] = int(time.time()) - 49 * 3600
         svc._fetch_history = lambda ch, hours=48: [old, _raw(2, "新闻。")]
-        svc.translator.translate = lambda text: "번역"
+        svc.translator.translate = lambda text, **kw: "번역"
         st = svc.stores["global"]
         svc._refresh("global", st)
         assert list(st.items) == [2]
