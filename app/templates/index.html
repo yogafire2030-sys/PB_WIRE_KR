@@ -101,25 +101,28 @@
     <div class="view" id="viewHaru" role="tabpanel" hidden>
       <header class="haru__head">
         <h2>하루하나</h2>
-        <p>PB수첩이 매일 하나씩 정리하는 콘텐츠</p>
+        <p>PB수첩이 매일 하나씩 정리하는 영상 콘텐츠</p>
       </header>
       {% if posts %}
       <ol class="haru">
         {% for p in posts %}
         <li>
           <a class="haru__card" href="{{ p.url }}" target="_blank" rel="noopener noreferrer">
-            <span class="haru__no">{{ "%02d"|format(posts|length - loop.index0) }}</span>
+            <span class="haru__thumb">
+              <img src="{{ p.thumb }}" alt="" loading="lazy" decoding="async" width="480" height="360">
+              <span class="haru__play" aria-hidden="true"></span>
+              <span class="haru__no">#{{ posts|length - loop.index0 }}</span>
+            </span>
             <span class="haru__main">
-              <strong class="haru__title">{{ p.title }}</strong>
-              {% if p.summary %}<span class="haru__sum">{{ p.summary }}</span>{% endif %}
-              <span class="haru__meta">{% if p.date %}<time datetime="{{ p.date }}">{{ p.date|replace("-", ".") }}</time> · {% endif %}Notion에서 읽기 ↗</span>
+              <strong class="haru__title">{{ p.title or "YouTube 영상" }}</strong>
+              <span class="haru__meta">{% if p.date %}<time datetime="{{ p.date }}">{{ p.date|replace("-", ".") }}</time> · {% endif %}YouTube에서 보기 ↗</span>
             </span>
           </a>
         </li>
         {% endfor %}
       </ol>
       {% else %}
-      <p class="empty">아직 등록된 글이 없습니다.</p>
+      <p class="empty">아직 등록된 영상이 없습니다.</p>
       {% endif %}
     </div>
 

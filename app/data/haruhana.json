@@ -1,17 +1,9 @@
 {
-  "_안내": "하루하나 글 목록. 맨 위에 적은 글이 화면 맨 앞에 나옵니다. url은 Notion 주소만 허용됩니다.",
+  "_안내": "하루하나 영상 목록. 맨 위에 적은 영상이 화면 맨 앞에 나옵니다. 유튜브 링크만 적으면 제목·썸네일은 자동으로 표시됩니다.",
   "posts": [
     {
-      "title": "하루하나 #2",
-      "date": "",
-      "summary": "",
-      "url": "https://app.notion.com/p/400a006e9b81805d98b7e38481c7ecc0"
-    },
-    {
-      "title": "하루하나 #1",
-      "date": "",
-      "summary": "",
-      "url": "https://app.notion.com/p/feat-402a006e9b818009ab7efb2a67c51578"
+      "url": "https://youtu.be/WHxCRrZ5XLs",
+      "date": ""
     }
   ]
 }

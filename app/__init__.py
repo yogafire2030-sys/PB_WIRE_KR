@@ -21,7 +21,10 @@ def create_app(config_object=Config, start_poller: bool = True) -> Flask:
     app.extensions["feed"] = feed
     market = MarketService(app.config)
     app.extensions["market"] = market
-    app.extensions["posts"] = PostStore(os.path.join(app.root_path, "data", "haruhana.json"))
+    posts = PostStore(os.path.join(app.root_path, "data", "haruhana.json"))
+    app.extensions["posts"] = posts
+    if start_poller:
+        posts.all()  # 시작 시 유튜브 제목 미리 조회(첫 방문자 대기 없음)
 
     from .routes import bp
     app.register_blueprint(bp)

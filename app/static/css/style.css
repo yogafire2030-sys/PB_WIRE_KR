@@ -109,16 +109,23 @@ body[data-view="haru"] .newpill{display:none!important}
 .haru__head{margin:22px 4px 12px}
 .haru__head h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
 .haru__head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
-.haru{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.haru__card{display:flex;gap:16px;align-items:flex-start;padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius);
+.haru{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.haru__card{display:flex;flex-direction:column;height:100%;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
   background:var(--panel);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s}
-.haru__card:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-1px)}
+.haru__card:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-2px)}
 .haru__card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.haru__no{flex:none;font-size:22px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.2;min-width:34px}
-.haru__main{display:flex;flex-direction:column;gap:4px;min-width:0}
-.haru__title{font-size:16px;font-weight:700;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
-.haru__sum{font-size:14px;color:var(--text-2);line-height:1.6;word-break:keep-all}
-.haru__meta{font-size:12px;color:var(--muted);font-weight:600}
+.haru__thumb{position:relative;display:block;aspect-ratio:16/9;background:#000;overflow:hidden}
+.haru__thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.haru__card:hover .haru__thumb img{transform:scale(1.03)}
+.haru__play{position:absolute;left:50%;top:50%;width:54px;height:38px;margin:-19px 0 0 -27px;border-radius:11px;
+  background:rgba(220,30,30,.92);box-shadow:0 4px 14px rgba(0,0,0,.35);transition:background .15s}
+.haru__play::after{content:"";position:absolute;left:22px;top:11px;border-style:solid;border-width:8px 0 8px 13px;border-color:transparent transparent transparent #fff}
+.haru__card:hover .haru__play{background:#e00}
+.haru__no{position:absolute;left:10px;top:10px;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:800}
+.haru__main{display:flex;flex-direction:column;gap:6px;padding:12px 14px 14px;flex:1}
+.haru__title{font-size:15px;font-weight:700;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.haru__meta{margin-top:auto;font-size:12px;color:var(--muted);font-weight:600}
 
 /* ───────── Live TV ───────── */
 .live-tv{margin:20px 0 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);overflow:hidden}
