@@ -71,3 +71,18 @@ def test_history_refresh_ttl():
         assert set(svc.history()["items"]) == {s[0] for s in INDICES}
     finally:
         svc.stop()
+
+
+def test_youtube_section_rendered_with_csp():
+    from app import create_app
+    app = create_app(start_poller=False)
+    try:
+        r = app.test_client().get("/")
+        html = r.get_data(as_text=True)
+        assert 'id="liveTv"' in html and "youtube-nocookie.com/embed/VlaCnp1fxI8" in html
+        assert "frame-src https://www.youtube-nocookie.com" in r.headers["Content-Security-Policy"]
+        app.config["YOUTUBE_LIVE_ID"] = ""
+        assert 'id="liveTv"' not in app.test_client().get("/").get_data(as_text=True)
+    finally:
+        app.extensions["feed"].stop()
+        app.extensions["market"].stop()

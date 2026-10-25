@@ -43,6 +43,7 @@ def create_app(config_object=Config, start_poller: bool = True) -> Flask:
             "font-src 'self' https://cdn.jsdelivr.net data:; "
             "img-src 'self' data: https:; "
             "connect-src 'self' *; "
+            "frame-src https://www.youtube-nocookie.com https://www.youtube.com; "
         )
         if resp.mimetype == "application/json":
             h["Cache-Control"] = "no-store"

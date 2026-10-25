@@ -18,6 +18,7 @@ def index():
                            default_channel=cfg["DEFAULT_CHANNEL"],
                            indices=[{"key": k, "name": n} for k, n, *_ in INDICES],
                            retention_h=cfg["RETENTION_HOURS"],
+                           youtube_id=cfg["YOUTUBE_LIVE_ID"],
                            poll_ms=5000)
 
 

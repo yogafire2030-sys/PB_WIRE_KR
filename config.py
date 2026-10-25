@@ -1,5 +1,6 @@
 """애플리케이션 설정 — 모든 값은 환경변수(.env)로 재정의 가능."""
 import os
+import re
 import secrets
 
 
@@ -27,6 +28,12 @@ class Config:
     MAX_ITEMS_PER_CHANNEL = _int("MAX_ITEMS_PER_CHANNEL", 1000, 50, 5000)
     CHANNEL_IDLE_SECONDS = _int("CHANNEL_IDLE_SECONDS", 180, 30, 3600)
     RETENTION_HOURS = _int("RETENTION_HOURS", 48, 1, 168)  # 이 시간보다 오래된 속보는 제외
+
+    # ── 유튜브 라이브 ──────────────────────────────────────
+    # 영상 ID(11자). 형식이 틀리면 라이브 영역을 표시하지 않음(빈 값 = 끄기)
+    _yt = os.getenv("YOUTUBE_LIVE_ID", "VlaCnp1fxI8").strip()
+    YOUTUBE_LIVE_ID = _yt if re.fullmatch(r"[A-Za-z0-9_-]{11}", _yt) else ""
+    del _yt
     HTTP_TIMEOUT = _int("HTTP_TIMEOUT", 8, 2, 30)
 
     # ── 번역 ──────────────────────────────────────────────

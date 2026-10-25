@@ -579,6 +579,24 @@
     t.pct6.textContent = (p6 > 0 ? "+" : p6 < 0 ? "-" : "") + fmtNum.format(Math.abs(p6)) + "%";
   }
 
+  // ── 유튜브 라이브 ─────────────────────────────────────
+  // 접으면 iframe 연결을 끊어 재생·네트워크·메모리 사용을 멈춤. 상태는 기기에 기억
+  const tv = { box: $("liveTv"), btn: $("liveTvToggle"), frame: $("liveTvFrame") };
+  if (tv.box && tv.btn && tv.frame) {
+    const setTv = (open) => {
+      tv.box.classList.toggle("is-collapsed", !open);
+      tv.btn.textContent = open ? "접기" : "펼치기";
+      tv.btn.setAttribute("aria-expanded", String(open));
+      const want = open ? tv.frame.dataset.src : "about:blank";
+      if (tv.frame.getAttribute("src") !== want) tv.frame.setAttribute("src", want);
+      try { localStorage.setItem("gw-tv", open ? "1" : "0"); } catch { /* 저장 불가 — 무시 */ }
+    };
+    let open = true;
+    try { open = localStorage.getItem("gw-tv") !== "0"; } catch { /* 기본값 사용 */ }
+    setTv(open);
+    tv.btn.addEventListener("click", () => setTv(tv.box.classList.contains("is-collapsed")));
+  }
+
   poll(true);
   pollMarket();
   if (tiles.size) loadHistory();
