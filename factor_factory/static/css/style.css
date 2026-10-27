@@ -216,3 +216,4 @@ tr.dim td { opacity: .62; }
 @media (max-width: 1100px) { .outlook-grid { grid-template-columns: 1fr 1fr; } .outlook-grid > :last-child { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .outlook-grid { grid-template-columns: 1fr; } .gauge-box .prob { font-size: 40px; } }
 .static-note { margin: 12px 0 0; }
+.brand small.credit { text-transform: none; letter-spacing: .02em; }

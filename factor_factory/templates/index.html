@@ -6,7 +6,7 @@
 {% if static_site %}<meta name="robots" content="noindex, nofollow">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">{% else %}<meta name="csrf-token" content="{{ csrf }}">{% endif %}
-<title>Factor Factory · {{ targets[target].name }}</title>
+<title>PB수첩 - 주가지수 예상 모델 · {{ targets[target].name }}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="{{ static_prefix }}css/style.css">
 </head>
@@ -15,8 +15,8 @@
   <div class="brand">
     <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
     <div>
-      <strong>Factor Factory</strong>
-      <small>Rolling Multi-Factor Model</small>
+      <strong>PB수첩 - 주가지수 예상 모델</strong>
+      <small class="credit">made by 박*남</small>
     </div>
   </div>
   <nav class="tabs" aria-label="대상 지수">
