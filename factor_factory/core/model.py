@@ -26,7 +26,7 @@ ST_SEL, ST_INS, ST_PRN, ST_NOV = "S", "I", "P", "N"  # 채택 / 비유의 / 상�
 class Settings:
     window: int = 252        # 롤링 창(거래일)
     alpha: float = 0.05      # 유의수준
-    mode: str = "explain"    # explain(동시점 설명) | predict(전일 팩터로 예측)
+    mode: str = "predict"    # predict(전일 팩터로 예측, 기본) | explain(동시점 설명)
     correction: str = "bh"   # none | bh | t3
     corr_max: float = 0.80   # 다중공선성 제거 임계치
     halflife: int = 10       # 가중치 EWMA 반감기(거래일)
