@@ -111,6 +111,7 @@ def dashboard(target: str) -> dict | None:
         "order": order,
     }
     out["forecast"] = store.load_forecast(target)
+    out["nextday"] = store.load_nextday(target)
     try:
         out["insight"] = insight.build(out, st, fd)
     except Exception:  # 해석 실패가 대시보드 전체를 막지 않도록
@@ -166,3 +167,45 @@ def forecast_payload(target: str, fc: dict, s, last_date) -> dict:
         "series": {"dates": tail["date"].tolist(), "pred": tail["pred"].tolist(),
                    "real": tail["real"].tolist(), "prob": tail["prob"].tolist()},
     })
+
+
+_WEEK = "월화수목금토일"
+
+
+def _move_text(key: str, x: float) -> str:
+    """팩터 원값(변화)을 사람이 읽는 단위로."""
+    f = config.FACTORS.get(key, {})
+    if key == "VIX":
+        return f"{x:+.2f}pt"
+    if f.get("transform") == "diff":           # 금리·스프레드(%) → bp
+        return f"{x * 100:+.0f}bp"
+    return f"{(math.exp(x) - 1) * 100:+.2f}%"   # 로그수익률 → %
+
+
+def nextday_payload(target: str, s, nxt: dict | None, next_date, stats_df) -> dict:
+    t = config.TARGETS[target]
+    nd = pd.Timestamp(next_date)
+    label = f"{nd.month}/{nd.day}({_WEEK[nd.weekday()]})"
+    base = {"target": target, "mode": s.mode, "date": nd.strftime("%Y-%m-%d"), "label": label,
+            "available": nxt is not None}
+    if s.mode == "explain":
+        base["reason"] = "설명 모드에서는 다음 세션 예상을 계산하지 않습니다."
+        return _clean(base)
+    if nxt is None:
+        base["reason"] = ("아시아장 마감(15:30 KST) 후 갱신 때 계산됩니다."
+                          if t["region"] == "US" and s.mode == "preopen"
+                          else "다음 세션에 필요한 해외시장 데이터가 아직 마감되지 않았습니다.")
+        return _clean(base)
+    drivers = []
+    for d in nxt["drivers"][:6]:
+        meta = config.FACTORS.get(d["key"], {})
+        drivers.append({"name": meta.get("name", d["key"]), "move": _move_text(d["key"], d["x"]),
+                        "contrib": d["contrib"]})
+    # 이 모드의 과거 표본외 성적(최근 60일): 방향 적중률
+    st = stats_df.dropna(subset=["pred", "actual"]).tail(60)
+    nz = (st["actual"] != 0) & (st["pred"] != 0)
+    hit = float((np.sign(st["actual"][nz]) == np.sign(st["pred"][nz])).mean()) if nz.any() else None
+    base.update({"pred": nxt["pred"], "prob": nxt["prob"], "lo": nxt["pred"] - nxt["sigma"],
+                 "hi": nxt["pred"] + nxt["sigma"], "base": nxt["base"], "drivers": drivers,
+                 "hit60": hit, "n60": int(nz.sum())})
+    return _clean(base)

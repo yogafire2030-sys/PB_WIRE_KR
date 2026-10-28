@@ -71,11 +71,16 @@ def build(d: dict, st: pd.DataFrame, fd: pd.DataFrame) -> dict:
         if mode == "explain":
             out["headline"] = (f"{tname}의 최근 {s['window']}거래일 일간 등락은 {len(selected)}개 팩터로 "
                                f"약 {share:.0f}%가 설명됩니다. 핵심 동인은 {top}입니다.")
+        elif mode == "preopen":
+            src = "간밤 미국장·환율 등" if region == "ASIA" else "당일 아시아장·전일 미국장 등"
+            out["headline"] = (f"장 시작 전에 이미 아는 정보({src})로 {tname} 당일 등락을 볼 때 "
+                               f"{len(selected)}개 팩터가 유의합니다. 설명력은 약 {share:.0f}%이고, "
+                               f"핵심 팩터는 {top}입니다.")
         else:
             out["headline"] = (f"전일 팩터 값으로 {tname}의 다음 날 등락을 볼 때 {len(selected)}개 팩터가 "
                                f"유의합니다. 설명력은 약 {share:.1f}%이고, 핵심 팩터는 {top}입니다.")
     else:
-        if mode == "predict":
+        if mode in ("predict", "preopen"):
             out["headline"] = (f"오늘은 다음 날 {tname} 등락을 미리 알려주는 유의한 선행 팩터가 없습니다. "
                                "일간 수익률은 대부분의 날 이렇게 나오는 것이 정상이며, 방향 판단은 상단 1주 전망을 참고하세요.")
         else:

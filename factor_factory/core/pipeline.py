@@ -29,9 +29,10 @@ def run_targets(jobs: Iterable[tuple[str, model.Settings]], demo: bool = False,
         name = config.TARGETS[key]["name"]
         say(f"{name} 팩터 생성·회귀 중…")
         t1 = time.perf_counter()
-        y, X = factory.build(raw, key, s.mode)
-        stats_df, fac_df = model.run(y, X, s)
+        y, X, x_next, next_date = factory.build(raw, key, s.mode)
+        stats_df, fac_df, nxt = model.run(y, X, s, x_next)
         store.save_run(key, s.to_dict(), raw["source"], stats_df, fac_df)
+        store.save_nextday(key, report.nextday_payload(key, s, nxt, next_date, stats_df))
         log.info("%s 완료 %.1fs (%d일 × %d팩터)", name, time.perf_counter() - t1,
                  len(stats_df), X.shape[1])
         del y, X, stats_df, fac_df

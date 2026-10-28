@@ -36,7 +36,7 @@
 
 <main class="wrap">
   <details class="panel settings" {{ 'open' if not data and not static_site }}>
-    <summary>모델 설정 <span class="muted">— 창 {{ settings.window }}일 · α {{ settings.alpha }} · {{ '설명' if settings.mode == 'explain' else '예측' }} 모드 · 보정 {{ settings.correction|upper }}</span></summary>
+    <summary>모델 설정 <span class="muted">— 창 {{ settings.window }}일 · α {{ settings.alpha }} · {{ {'explain': '설명', 'predict': '예측(하루 지연)', 'preopen': '개장 전 예측'}[settings.mode] }} 모드 · 보정 {{ settings.correction|upper }}</span></summary>
 {% if not static_site %}
     <form id="settings" class="grid-form" autocomplete="off">
       <label>롤링 창(거래일)
@@ -49,8 +49,9 @@
       </label>
       <label>모드
         <select name="mode">
+          <option value="preopen" {{ 'selected' if settings.mode == 'preopen' }}>개장 전 예측 (간밤 해외시장 → 오늘)</option>
+          <option value="predict" {{ 'selected' if settings.mode == 'predict' }}>예측-보수적 (하루 더 지연)</option>
           <option value="explain" {{ 'selected' if settings.mode == 'explain' }}>설명 (동시점 기여)</option>
-          <option value="predict" {{ 'selected' if settings.mode == 'predict' }}>예측 (전일 팩터 → 당일)</option>
         </select>
       </label>
       <label>다중검정 보정
@@ -95,6 +96,37 @@
        사내망 등으로 외부 접속이 막혀 있다면 ‘데모 데이터 사용’으로 먼저 확인해 보세요.</p>
   </section>
 {% else %}
+  {% set nd = data.nextday %}
+  {% if nd and nd.mode != 'explain' %}
+  <section class="panel nextday">
+    <div class="panel-head">
+      <h2>{{ nd.label }} {{ targets[target].name }} 개장 전 예상 <span class="muted">{{ '간밤 해외시장·환율 등 장 시작 전에 이미 마감된 정보 기준' if nd.mode == 'preopen' else '전일까지의 팩터 기준' }}</span></h2>
+      {% if nd.available and nd.hit60 is not none %}<span class="grade {{ 'g-good' if nd.hit60 >= 0.6 else ('g-mid' if nd.hit60 >= 0.55 else 'g-low') }}">최근 {{ nd.n60 }}일 방향 적중 {{ '%.0f'|format(nd.hit60 * 100) }}%</span>{% endif %}
+    </div>
+    {% if nd.available %}
+    <div class="nd-grid">
+      <div class="nd-main">
+        <span class="lbl">예상 등락</span>
+        <b class="{{ 'pos' if nd.pred > 0 else 'neg' }}">{{ '%+.2f'|format(nd.pred) }}%</b>
+        <em>상승 확률 {{ '%.0f'|format(nd.prob * 100) }}% · 68% 범위 {{ '%+.1f'|format(nd.lo) }}% ~ {{ '%+.1f'|format(nd.hi) }}%</em>
+      </div>
+      <div>
+        {% if nd.drivers %}
+        <table class="nd-table">
+          <thead><tr><th>근거 팩터</th><th class="num">간밤 변화</th><th class="num">예상 기여</th></tr></thead>
+          <tbody>{% for d in nd.drivers %}<tr><td>{{ d.name }}</td><td class="num">{{ d.move }}</td><td class="num {{ 'pos' if d.contrib > 0 else 'neg' }}">{{ '%+.2f'|format(d.contrib) }}%p</td></tr>{% endfor %}</tbody>
+        </table>
+        {% else %}
+        <p class="muted">최근 유의했던 선행 팩터가 없어 평균 수익률({{ '%+.2f'|format(nd.base) }}%)로 예상했습니다.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <p class="muted">{{ nd.reason }}</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
   {% set fc = data.forecast %}
   {% if fc %}
   <section class="panel outlook">

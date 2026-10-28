@@ -4,7 +4,8 @@ name: Factor Factory daily
 
 on:
   schedule:
-    - cron: "30 22 * * 0-4"   # UTC 22:30 일~목 = KST 07:30 월~금
+    - cron: "30 22 * * 0-4"   # KST 07:30 월~금 — 간밤 미국장 반영, KOSPI·KOSDAQ 개장 전 예상
+    - cron: "40 6 * * 1-5"    # KST 15:40 월~금 — 아시아장 마감 반영, S&P500·NASDAQ 개장 전 예상
   workflow_dispatch: {}        # Actions 탭에서 수동 실행
 
 permissions:

@@ -13,10 +13,12 @@
 """
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 from scipy.special import fdtrc, stdtr  # 분포 객체보다 수십 배 빠른 ufunc
 
 ST_SEL, ST_INS, ST_PRN, ST_NOV = "S", "I", "P", "N"  # 채택 / 비유의 / 상관제거 / 분산없음
@@ -26,7 +28,7 @@ ST_SEL, ST_INS, ST_PRN, ST_NOV = "S", "I", "P", "N"  # 채택 / 비유의 / 상�
 class Settings:
     window: int = 252        # 롤링 창(거래일)
     alpha: float = 0.05      # 유의수준
-    mode: str = "predict"    # predict(전일 팩터로 예측, 기본) | explain(동시점 설명)
+    mode: str = "preopen"    # preopen(개장 전 정보로 예측, 기본) | predict(하루 더 늦춤) | explain(동시점 설명)
     correction: str = "bh"   # none | bh | t3
     corr_max: float = 0.80   # 다중공선성 제거 임계치
     halflife: int = 10       # 가중치 EWMA 반감기(거래일)
@@ -40,7 +42,7 @@ class Settings:
         "halflife": (1, 120), "nw_lags": (0, 20), "history": (60, 2500),
         "horizon": (1, 20), "fc_window": (252, 1500),
     }
-    CHOICES = {"mode": ("explain", "predict"), "correction": ("none", "bh", "t3")}
+    CHOICES = {"mode": ("preopen", "predict", "explain"), "correction": ("none", "bh", "t3")}
 
     @classmethod
     def from_dict(cls, d: dict | None) -> "Settings":
@@ -168,7 +170,8 @@ def _select(Z: np.ndarray, yz: np.ndarray, cand: np.ndarray, s: Settings):
 # ---------------------------------------------------------------------------
 # 메인 루프
 # ---------------------------------------------------------------------------
-def run(y: pd.Series, X: pd.DataFrame, s: Settings) -> tuple[pd.DataFrame, pd.DataFrame]:
+def run(y: pd.Series, X: pd.DataFrame, s: Settings,
+        x_next: pd.Series | None = None) -> tuple[pd.DataFrame, pd.DataFrame, dict | None]:
     """(daily_stats, factor_daily) 반환. 수익률 관련 값은 % 단위."""
     Y = y.to_numpy(np.float64)
     A = X.to_numpy(np.float64)
@@ -240,8 +243,27 @@ def run(y: pd.Series, X: pd.DataFrame, s: Settings) -> tuple[pd.DataFrame, pd.Da
             fac_rows.append((d, names[j], beta_full[j], t_last[j], p_last[j], status[j],
                              w_raw[j], w_norm[j], B[j], contrib[j]))
 
+    # 다음 세션 예측: 오늘까지의 평활 모델(B)에 다음 세션 팩터값을 넣는다(표본외)
+    nxt = None
+    if x_next is not None and prev is not None:
+        pmu, psd, pmy, psy, pB = prev
+        xv = x_next.reindex(names).to_numpy(np.float64)
+        if np.isfinite(xv).all():
+            z = np.divide(xv - pmu, psd, out=np.zeros(m), where=psd > 0)
+            contrib = psy * pB * z
+            r2_last = res["r2"] if valid and np.isfinite(res["r2"]) else 0.0
+            sigma = psy * math.sqrt(max(1.0 - r2_last, 0.05))
+            pred = pmy + float(contrib.sum())
+            nxt = {"pred": pred * 100, "base": pmy * 100, "sigma": sigma * 100,
+                   "prob": float(stats.norm.cdf(pred / sigma)) if sigma > 0 else 0.5,
+                   "drivers": sorted(
+                       [{"key": names[j], "contrib": float(contrib[j] * 100), "x": float(xv[j]),
+                         "z": float(z[j]), "b": float(pB[j])}
+                        for j in range(m) if abs(pB[j]) > 0.01],
+                       key=lambda d: -abs(d["contrib"]))}
+
     stats_df = pd.DataFrame(stat_rows, columns=[
         "date", "n", "k", "r2", "adj_r2", "f_stat", "f_p", "valid", "actual", "pred", "bench", "fit"])
     fac_df = pd.DataFrame(fac_rows, columns=[
         "date", "factor", "beta", "t", "p", "status", "w_raw", "w_ewma", "b_ewma", "contrib"])
-    return stats_df, fac_df
+    return stats_df, fac_df, nxt

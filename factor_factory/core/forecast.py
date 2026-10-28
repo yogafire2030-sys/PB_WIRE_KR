@@ -20,7 +20,7 @@ from scipy import stats
 import config
 from core import model
 from core.data import DataError
-from core.factory import _aligned
+from core.factory import _aligned, completed_cutoff
 
 FEATURE_NAMES = {
     "T_MOM5": "지수 1주 수익률", "T_MOM20": "지수 1개월 수익률", "T_MOM60": "지수 3개월 수익률",
@@ -42,6 +42,8 @@ def build_features(raw: dict, target_key: str, h: int) -> tuple[pd.Series, pd.Da
         raise DataError(f"{t['name']} 시세가 없습니다.")
     lvl = yahoo[t["ticker"]].dropna()
     lvl = lvl[lvl > 0]
+    if raw.get("source") != "demo":
+        lvl = lvl[lvl.index <= completed_cutoff(t["region"])]
     dates = pd.DatetimeIndex(lvl.index)
     t_order = config.CLOSE_ORDER[t["region"]]
     logp = np.log(lvl)

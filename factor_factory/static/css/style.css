@@ -217,3 +217,13 @@ tr.dim td { opacity: .62; }
 @media (max-width: 640px) { .outlook-grid { grid-template-columns: 1fr; } .gauge-box .prob { font-size: 40px; } }
 .static-note { margin: 12px 0 0; }
 .brand small.credit { text-transform: none; letter-spacing: .02em; }
+
+/* 다음 세션 개장 전 예상 */
+.nextday { border-color: rgba(47,212,180,.35); }
+.nd-grid { display: grid; grid-template-columns: 260px 1fr; gap: 28px; align-items: start; }
+.nd-main { display: grid; gap: 4px; }
+.nd-main .lbl { color: var(--muted); font-size: 12px; }
+.nd-main b { font-size: 40px; font-weight: 750; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.nd-main em { font-style: normal; color: var(--muted); font-size: 12.5px; }
+.nd-table td, .nd-table th { padding: 7px 10px; }
+@media (max-width: 640px) { .nd-grid { grid-template-columns: 1fr; } .nd-main b { font-size: 34px; } }

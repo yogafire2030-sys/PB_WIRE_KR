@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS factor_daily (
     beta REAL, t REAL, p REAL, status TEXT, w_raw REAL, w_ewma REAL, b_ewma REAL, contrib REAL,
     PRIMARY KEY (target, date, factor)
 ) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS nextday (
+    target TEXT PRIMARY KEY, updated_at TEXT NOT NULL, payload TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS forecasts (
     target TEXT PRIMARY KEY, updated_at TEXT NOT NULL, payload TEXT NOT NULL
 );
@@ -126,4 +129,17 @@ def save_forecast(target: str, payload: dict) -> None:
 def load_forecast(target: str) -> dict | None:
     with closing(_connect()) as conn:
         row = conn.execute("SELECT payload FROM forecasts WHERE target=?", (target,)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def save_nextday(target: str, payload: dict) -> None:
+    with closing(_connect()) as conn, conn:
+        conn.execute("INSERT OR REPLACE INTO nextday VALUES (?,?,?)",
+                     (target, datetime.now().strftime("%Y-%m-%d %H:%M"),
+                      json.dumps(payload, ensure_ascii=False, allow_nan=False)))
+
+
+def load_nextday(target: str) -> dict | None:
+    with closing(_connect()) as conn:
+        row = conn.execute("SELECT payload FROM nextday WHERE target=?", (target,)).fetchone()
     return json.loads(row[0]) if row else None
