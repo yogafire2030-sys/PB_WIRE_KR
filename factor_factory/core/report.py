@@ -175,9 +175,10 @@ _WEEK = "월화수목금토일"
 def _move_text(key: str, x: float) -> str:
     """팩터 원값(변화)을 사람이 읽는 단위로."""
     f = config.FACTORS.get(key, {})
-    if key == "VIX":
+    unit = f.get("unit") or ("bp" if f.get("transform") == "diff" else "%")
+    if unit == "pt":
         return f"{x:+.2f}pt"
-    if f.get("transform") == "diff":           # 금리·스프레드(%) → bp
+    if unit == "bp":                            # 금리·스프레드(%) → bp
         return f"{x * 100:+.0f}bp"
     return f"{(math.exp(x) - 1) * 100:+.2f}%"   # 로그수익률 → %
 
@@ -209,3 +210,91 @@ def nextday_payload(target: str, s, nxt: dict | None, next_date, stats_df) -> di
                  "hi": nxt["pred"] + nxt["sigma"], "base": nxt["base"], "drivers": drivers,
                  "hit60": hit, "n60": int(nz.sum())})
     return _clean(base)
+
+
+# ---------------------------------------------------------------------------
+# 팩터 아카이브 성적표
+# ---------------------------------------------------------------------------
+VERDICT_ORDER = ["핵심", "간헐적 유효", "부호 불안정", "중복", "약함", "휴면", "데이터 없음"]
+
+
+def _verdict(sel, sel60, sign, prune) -> str:
+    if sel is None:
+        return "데이터 없음"
+    if sel >= 0.5 and sign >= 0.9:
+        return "핵심"
+    if sel >= 0.15 and sign < 0.7:
+        return "부호 불안정"
+    if sel >= 0.15 or sel60 >= 0.3:
+        return "간헐적 유효"
+    if prune >= 0.5:
+        return "중복"
+    if sel < 0.05:
+        return "휴면"
+    return "약함"
+
+
+def archive() -> dict:
+    """팩터 × 대상지수 성적표. 저장된 전체 계산 기간(기본 500거래일) 기준."""
+    stats_by_t: dict[str, dict] = {}
+    periods = {}
+    for tk in config.TARGETS:
+        fd = store.load_factors(tk, "0000-00-00")
+        if fd.empty:
+            continue
+        dates = sorted(fd["date"].unique())
+        periods[tk] = {"from": dates[0], "to": dates[-1], "n": len(dates)}
+        last60 = set(dates[-60:])
+        per = {}
+        for fk, g in fd.groupby("factor", sort=False):
+            sel_mask = g["status"] == "S"
+            sel = float(sel_mask.mean())
+            sel60 = float(sel_mask[g["date"].isin(last60)].mean()) if g["date"].isin(last60).any() else 0.0
+            b = g.loc[sel_mask, "beta"].dropna()
+            pos = float((b > 0).mean()) if len(b) else 0.5
+            sign = max(pos, 1 - pos) if len(b) else 0.0
+            tsel = g.loc[sel_mask, "t"].abs().dropna()
+            per[fk] = {
+                "sel": sel, "sel60": sel60, "sign": sign, "dir": "+" if pos >= 0.5 else "−",
+                "t": float(tsel.mean()) if len(tsel) else None,
+                "prune": float((g["status"] == "P").mean()),
+                "last": g.loc[sel_mask, "date"].max() if sel_mask.any() else None,
+            }
+            per[fk]["verdict"] = _verdict(sel, sel60, sign, per[fk]["prune"])
+        stats_by_t[tk] = per
+
+    rows = []
+    for fk, f in config.FACTORS.items():
+        cells = {}
+        for tk in config.TARGETS:
+            if fk in config.TARGETS[tk]["exclude"]:
+                cells[tk] = {"verdict": "제외"}
+            elif tk in stats_by_t:
+                cells[tk] = stats_by_t[tk].get(fk) or {"verdict": "대기" if f.get("fallback_for") else "데이터 없음"}
+            else:
+                cells[tk] = {"verdict": "데이터 없음"}
+        vs = [c["verdict"] for c in cells.values() if c["verdict"] not in ("제외", "대기")]
+        best = min(vs, key=lambda v: VERDICT_ORDER.index(v)) if vs else ("대기" if f.get("fallback_for") else "제외")
+        if best == "대기":
+            action = "FRED 실패 시 자동 투입"
+        elif f.get("status") == "retired":
+            action = "은퇴됨"
+        elif best in ("핵심", "간헐적 유효", "부호 불안정"):
+            action = "유지" if f.get("status") == "core" else "core 승격 검토"
+        elif best == "중복":
+            action = "중복 — 하나만 남기기"
+        elif best in ("휴면", "약함"):
+            action = "은퇴 검토" if f.get("status") == "core" else "관찰 후 은퇴 검토"
+        else:
+            action = "데이터 확인 필요"
+        rows.append({"key": fk, "name": f["name"], "group": f["group"], "why": f.get("why", ""),
+                     "status": f.get("status", "core"), "added": f.get("added", ""),
+                     "source": f["source"], "fallback": bool(f.get("fallback_for")),
+                     "cells": cells, "best": best, "action": action})
+    rows.sort(key=lambda r: (VERDICT_ORDER.index(r["best"]) if r["best"] in VERDICT_ORDER else 99,
+                             r["group"], r["name"]))
+    summary = {v: sum(1 for r in rows if r["best"] == v) for v in VERDICT_ORDER}
+    return _clean({"rows": rows, "periods": periods, "summary": summary,
+                   "problems": config.registry_problems(),
+                   "n_total": len(rows),
+                   "n_candidate": sum(1 for r in rows if r["status"] == "candidate")})

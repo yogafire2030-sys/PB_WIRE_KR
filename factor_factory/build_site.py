@@ -39,11 +39,16 @@ def render(out: Path) -> int:
                 data=data, target=key, targets=config.TARGETS,
                 settings=pipeline.saved_settings(key).to_dict(), csrf="",
                 demo=data["source"] == "demo", static_site=True, static_prefix="static/",
-                links=links, csv_href=csv_name)
+                links=links, csv_href=csv_name, archive_href="archive.html")
             (out / links[key]).write_text(html, encoding="utf-8")
             with open(out / csv_name, "w", newline="", encoding="utf-8-sig") as fh:
                 csv.writer(fh).writerows(report.today_csv_rows(key))
             written += 1
+        atmpl = app.jinja_env.get_template("archive.html")
+        upd = next((report.dashboard(k) or {}).get("updated_at", "") for k in config.TARGETS)
+        (out / "archive.html").write_text(atmpl.render(
+            a=report.archive(), targets=config.TARGETS, static_site=True, static_prefix="static/",
+            links=links, archive_href="archive.html", target=None, updated=upd), encoding="utf-8")
     return written
 
 

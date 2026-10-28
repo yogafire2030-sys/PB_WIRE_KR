@@ -227,3 +227,40 @@ tr.dim td { opacity: .62; }
 .nd-main em { font-style: normal; color: var(--muted); font-size: 12.5px; }
 .nd-table td, .nd-table th { padding: 7px 10px; }
 @media (max-width: 640px) { .nd-grid { grid-template-columns: 1fr; } .nd-main b { font-size: 34px; } }
+
+/* 팩터 아카이브 */
+.tabs a.arch { margin-left: 6px; border-left: 1px solid var(--line); border-radius: 0 7px 7px 0; padding-left: 14px; color: var(--gold); }
+.tabs a.arch.on { color: var(--text); }
+.arch-intro h2 { margin-bottom: 12px; }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: #c9d2e4; line-height: 1.6; }
+.steps b { color: var(--text); margin-right: 8px; }
+.arch-sum { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.vd-chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--bg-2); color: var(--muted); border: 1px solid var(--line); }
+.vd-chip b { color: var(--text); margin-left: 4px; }
+.arch-table td { vertical-align: top; white-space: normal; }
+.arch-table .fac { min-width: 260px; max-width: 380px; }
+.arch-table .nm { font-weight: 600; }
+.arch-table .grp { color: var(--muted); font-size: 11.5px; margin-left: 6px; }
+.arch-table .why { display: block; color: var(--muted); font-size: 11.5px; margin-top: 3px; line-height: 1.5; }
+.arch-table .cell { min-width: 92px; }
+.arch-table .cell b { font-size: 13px; }
+.arch-table .cell small { display: block; font-size: 10.5px; color: var(--muted); font-family: inherit; }
+.arch-table .dir { font-style: normal; font-size: 10px; margin-left: 3px; color: var(--muted); }
+.arch-table .act { color: #c9d2e4; font-size: 12px; min-width: 120px; }
+.st { font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.st-core { background: rgba(141,155,184,.14); color: var(--muted); }
+.st-candidate { background: rgba(217,178,111,.16); color: var(--gold); }
+.st-retired { background: rgba(255,122,138,.12); color: var(--neg); }
+.added { display: block; color: var(--muted); font-size: 10.5px; margin-top: 3px; }
+.vd { font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: var(--bg-2); color: var(--muted); }
+.vd-핵심 b, .vd.vd-핵심 { color: var(--pos); }
+.vd.vd-핵심 { background: rgba(47,212,180,.15); }
+.vd.vd-간헐적유효 { background: rgba(106,168,255,.14); color: #8fbcff; }
+.vd.vd-부호불안정 { background: rgba(245,184,74,.14); color: var(--warn); }
+.vd.vd-중복 { background: rgba(177,140,255,.14); color: #c3a8ff; }
+.vd.vd-휴면, .vd.vd-약함 { background: rgba(141,155,184,.08); color: #6f7d99; }
+td.vd-핵심 b { color: var(--pos); }
+td.vd-간헐적유효 b { color: #8fbcff; }
+td.vd-부호불안정 b { color: var(--warn); }
+td.vd-휴면, td.vd-약함, td.vd-제외, td.vd-데이터없음 { opacity: .55; }
+code { font-family: var(--mono); font-size: 12px; background: var(--bg-2); padding: 1px 5px; border-radius: 4px; }

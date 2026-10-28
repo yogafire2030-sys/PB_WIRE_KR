@@ -11,28 +11,8 @@
 <link rel="stylesheet" href="{{ static_prefix }}css/style.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
-    <div>
-      <strong>PB수첩 - 주가지수 예상 모델</strong>
-      <small class="credit">made by 박*남</small>
-    </div>
-  </div>
-  <nav class="tabs" aria-label="대상 지수">
-    {% for key, t in targets.items() %}
-    <a href="{{ links[key] }}" class="{{ 'on' if key == target }}">{{ t.name }}</a>
-    {% endfor %}
-  </nav>
-  <div class="actions">
-{% if static_site %}
-    <span class="pill ok">평일 07:30 자동 갱신 · {{ data.updated_at if data else '-' }}</span>
-{% else %}
-    <span id="status" class="pill" role="status">대기</span>
-    <button id="btn-update" class="btn primary" type="button">오늘 업데이트</button>
-{% endif %}
-  </div>
-</header>
+{% set page = 'dashboard' %}{% set updated = data.updated_at if data else '' %}
+{% include '_topbar.html' %}
 
 <main class="wrap">
   <details class="panel settings" {{ 'open' if not data and not static_site }}>
@@ -49,9 +29,9 @@
       </label>
       <label>모드
         <select name="mode">
+          <option value="explain" {{ 'selected' if settings.mode == 'explain' }}>설명 (동시점 기여)</option>
           <option value="preopen" {{ 'selected' if settings.mode == 'preopen' }}>개장 전 예측 (간밤 해외시장 → 오늘)</option>
           <option value="predict" {{ 'selected' if settings.mode == 'predict' }}>예측-보수적 (하루 더 지연)</option>
-          <option value="explain" {{ 'selected' if settings.mode == 'explain' }}>설명 (동시점 기여)</option>
         </select>
       </label>
       <label>다중검정 보정

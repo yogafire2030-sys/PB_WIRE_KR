@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% if static_site %}<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">{% endif %}
+<title>PB수첩 - 주가지수 예상 모델 · 팩터 아카이브</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="{{ static_prefix }}css/style.css">
+</head>
+<body>
+{% set page = 'archive' %}{% set target = None %}
+{% include '_topbar.html' %}
+<main class="wrap">
+  <section class="panel arch-intro">
+    <h2>팩터 아카이브 <span class="muted">등록 {{ a.n_total }}개 · 신규 후보 {{ a.n_candidate }}개{% if a.periods %} · 평가기간 {{ (a.periods.values()|list)[0]['from'] }} ~ {{ (a.periods.values()|list)[0]['to'] }}{% endif %}</span></h2>
+    <ol class="steps">
+      <li><b>근거 먼저</b>경제적으로 왜 지수를 움직이는지 한 줄로 설명할 수 있는 변수만 등록합니다. 데이터에서 우연히 맞는 변수를 찾는 것(데이터 마이닝)을 막기 위해서입니다.</li>
+      <li><b>후보로 투입</b>신규 변수는 '후보'로 모델에 바로 넣습니다. 여러 변수를 동시에 검정하는 문제는 BH 보정이 통제합니다.</li>
+      <li><b>성적 평가</b>매일 롤링 회귀 결과를 쌓아 채택률·부호 일관성·중복 여부를 봅니다(아래 표).</li>
+      <li><b>승격/은퇴</b>한 지수라도 '핵심·간헐적 유효'면 유지하고, 모든 지수에서 '휴면'이면 은퇴시킵니다. 은퇴한 변수는 계산에서 빠지지만 기록은 남깁니다.</li>
+    </ol>
+    {% if a.problems %}<ul class="caution">{% for p in a.problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+    <div class="arch-sum">
+      {% for v, n in a.summary.items() if n %}<span class="vd-chip v-{{ loop.index0 }}" data-v="{{ v }}">{{ v }} <b>{{ n }}</b></span>{% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>팩터별 성적표</h2><span class="muted">칸 = 채택률(롤링 회귀에서 유의했던 날의 비율) · 화살표 = 주된 부호 · 칸에 마우스를 올리면 상세</span></div>
+    <div class="table-wrap">
+      <table class="arch-table">
+        <thead><tr>
+          <th>팩터</th><th>상태</th>
+          {% for key, t in targets.items() %}<th class="num">{{ t.name }}</th>{% endfor %}
+          <th>종합</th><th>권고</th>
+        </tr></thead>
+        <tbody>
+        {% for r in a.rows %}
+          <tr>
+            <td class="fac"><span class="nm">{{ r.name }}</span><span class="grp">{{ r.group }}{% if r.source == 'derived' %} · 파생{% endif %}{% if r.fallback %} · FRED 대체{% endif %}</span><small class="why">{{ r.why }}</small></td>
+            <td><span class="st st-{{ r.status }}">{{ {'core': '기본', 'candidate': '신규 후보', 'retired': '은퇴'}[r.status] }}</span>{% if r.status == 'candidate' %}<small class="added">{{ r.added }} 등록</small>{% endif %}</td>
+            {% for key in targets %}{% set c = r.cells[key] %}
+            <td class="num cell vd-{{ c.verdict|replace(' ', '') }}" title="{% if c.sel is defined and c.sel is not none %}채택률 {{ '%.0f'|format(c.sel*100) }}% (최근60일 {{ '%.0f'|format(c.sel60*100) }}%) · 평균|t| {{ '%.1f'|format(c.t) if c.t else '-' }} · 부호일관성 {{ '%.0f'|format(c.sign*100) }}% · 상관제거 {{ '%.0f'|format(c.prune*100) }}% · 마지막 채택 {{ c.last or '-' }}{% else %}{{ c.verdict }}{% endif %}">
+              {% if c.sel is defined and c.sel is not none %}<b>{{ '%.0f'|format(c.sel*100) }}%</b>{% if c.sel > 0.02 %}<i class="dir">{{ '▲' if c.dir == '+' else '▼' }}</i>{% endif %}<small>{{ c.verdict }}</small>{% else %}<small>{{ c.verdict }}</small>{% endif %}
+            </td>{% endfor %}
+            <td><span class="vd vd-{{ r.best|replace(' ', '') }}">{{ r.best }}</span></td>
+            <td class="act">{{ r.action }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel note">
+    <h2>판정 기준</h2>
+    <ul>
+      <li><b>핵심</b>: 채택률 50% 이상, 부호 일관성 90% 이상. 늘 같은 방향으로 유의한 변수입니다.</li>
+      <li><b>간헐적 유효</b>: 채택률 15% 이상이거나 최근 60일 30% 이상. 특정 국면에서만 작동하는 변수입니다.</li>
+      <li><b>부호 불안정</b>: 자주 유의하지만 방향이 국면마다 바뀝니다(예: 금리와 주가 관계). 해석할 때 주의가 필요합니다.</li>
+      <li><b>중복</b>: 다른 변수와 상관이 0.8 이상이라 절반 넘게 '상관제거'됐습니다. 같은 정보를 가진 둘 중 하나만 남기면 됩니다.</li>
+      <li><b>휴면</b>: 채택률 5% 미만입니다. 모든 지수에서 휴면이면 <code>config.py</code>에서 <code>status="retired"</code>로 바꾸세요.</li>
+      <li>성적은 저장된 계산 기간(기본 500거래일)의 롤링 결과입니다. 새 후보도 첫 실행부터 과거 기간 성적이 바로 나옵니다.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

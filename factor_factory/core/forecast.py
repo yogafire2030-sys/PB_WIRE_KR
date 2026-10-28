@@ -20,7 +20,7 @@ from scipy import stats
 import config
 from core import model
 from core.data import DataError
-from core.factory import _aligned, completed_cutoff
+from core.factory import _aligned, completed_cutoff, factor_level
 
 FEATURE_NAMES = {
     "T_MOM5": "지수 1주 수익률", "T_MOM20": "지수 1개월 수익률", "T_MOM60": "지수 3개월 수익률",
@@ -32,6 +32,9 @@ FEATURE_NAMES = {
     "DXY_RET20": "달러인덱스 1개월 변화", "USDKRW_RET20": "원/달러 1개월 변화",
     "SOX_RET20": "반도체지수 1개월 수익률", "COPPER_RET20": "구리 1개월 수익률",
     "WTI_RET20": "유가 1개월 수익률", "SPX_RET5": "S&P500 1주 수익률",
+    "VIXTERM_LVL": "VIX 기간구조(1M−3M)", "MOVE_LVL": "MOVE(채권 변동성) 레벨",
+    "AUDJPY_RET20": "호주달러/엔 1개월 변화", "CUAU_RET20": "구리/금 비율 1개월 변화",
+    "EWY_RET5": "한국 ETF(EWY) 1주 수익률",
 }
 
 
@@ -50,13 +53,15 @@ def build_features(raw: dict, target_key: str, h: int) -> tuple[pd.Series, pd.Da
     r1 = logp.diff()
 
     def level(key):
-        f = config.FACTORS.get(key)
+        f = config.active_factors().get(key)
         if not f or key in t["exclude"]:
             return None
-        frame = yahoo if f["source"] == "yahoo" else fred
-        if frame is None or f["id"] not in frame.columns:
+        src = factor_level(raw, f)
+        if src is None:
             return None
-        a = _aligned(frame[f["id"]], dates, config.CLOSE_ORDER[f["region"]] > t_order)
+        if raw.get("source") != "demo":
+            src = src[src.index <= completed_cutoff(f["region"])]
+        a = _aligned(src, dates, config.CLOSE_ORDER[f["region"]] > t_order)
         return a if a.notna().any() else None
 
     def ret(key, n):
@@ -87,9 +92,17 @@ def build_features(raw: dict, target_key: str, h: int) -> tuple[pd.Series, pd.Da
         l10, l2 = level("UST10Y"), level("UST2YF")
         curve = (l10 - l2) if (l10 is not None and l2 is not None) else None
     F["CURVE"] = curve
+    # 신규(2026-10-28): 레짐·위험선호 '레벨' 신호
+    F["VIXTERM_LVL"] = level("VIXTERM")            # 1M−3M > 0 이면 패닉(역전)
+    F["MOVE_LVL"] = level("MOVE")
+    F["AUDJPY_RET20"] = ret("AUDJPY", 20)
+    cu, au = level("COPPER"), level("GOLD")        # 구리/금: 주간 피처엔 금 단독 피처가 없어 선형결합 아님
+    if cu is not None and au is not None:
+        F["CUAU_RET20"] = np.log((cu / au).where((cu > 0) & (au > 0))).diff(20)
     if t["region"] == "ASIA":
         F["USDKRW_RET20"] = ret("USDKRW", 20)
         F["SPX_RET5"] = ret("SPX", 5)
+        F["EWY_RET5"] = ret("EWY", 5)
 
     X = pd.DataFrame({k: v for k, v in F.items() if v is not None}, index=dates)
     X = X.replace([np.inf, -np.inf], np.nan)

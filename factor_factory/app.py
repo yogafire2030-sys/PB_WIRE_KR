@@ -78,8 +78,16 @@ def create_app() -> Flask:
         return render_template(
             "index.html", data=data, target=target, targets=config.TARGETS,
             settings=settings, csrf=csrf_token(), static_site=False, static_prefix="/static/",
-            links={k: f"?target={k}" for k in config.TARGETS}, csv_href=f"/export.csv?target={target}",
+            links={k: f"/?target={k}" for k in config.TARGETS}, csv_href=f"/export.csv?target={target}",
+            archive_href="/archive",
             demo=(data["source"] == "demo") if data else demo_default)
+
+    @app.get("/archive")
+    def archive_page():
+        return render_template(
+            "archive.html", a=report.archive(), targets=config.TARGETS, static_site=False,
+            static_prefix="/static/", links={k: f"/?target={k}" for k in config.TARGETS},
+            archive_href="/archive", target=None, updated="")
 
     @app.post("/api/update")
     def api_update():

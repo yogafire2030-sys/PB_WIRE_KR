@@ -1,0 +1,24 @@
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
+    <div>
+      <strong>PB수첩 - 주가지수 예상 모델</strong>
+      <small class="credit">made by 박*남</small>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="대상 지수">
+    {% for key, t in targets.items() %}
+    <a href="{{ links[key] }}" class="{{ 'on' if page != 'archive' and key == target }}">{{ t.name }}</a>
+    {% endfor %}
+    <a href="{{ archive_href }}" class="arch {{ 'on' if page == 'archive' }}">팩터 아카이브</a>
+  </nav>
+  <div class="actions">
+{% if static_site %}
+    <span class="pill ok">평일 07:30·15:40 자동 갱신 · {{ updated or '-' }}</span>
+{% elif page == 'archive' %}
+{% else %}
+    <span id="status" class="pill" role="status">대기</span>
+    <button id="btn-update" class="btn primary" type="button">오늘 업데이트</button>
+{% endif %}
+  </div>
+</header>

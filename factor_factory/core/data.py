@@ -246,7 +246,7 @@ def _demo_raw(seed: int = 7) -> dict:
 
     # 2) 팩터 레벨
     for key, f in config.FACTORS.items():
-        if f["source"] == "tech" or f["id"] in target_ids:
+        if f["source"] in ("tech", "derived") or f["id"] in target_ids:
             continue
         c = changes(key)
         if f["transform"] == "logret":
@@ -260,6 +260,30 @@ def _demo_raw(seed: int = 7) -> dict:
         else:
             lvl = 3.0 + np.cumsum(c)
         (yahoo if f["source"] == "yahoo" else fred)[f["id"]] = lvl
+
+    # 2-b) 파생 팩터: 원하는 파생 경로 D를 먼저 만들고 구성 티커를 역산
+    for key, f in config.FACTORS.items():
+        if f["source"] != "derived":
+            continue
+        c = changes(key)
+        if f["op"] == "spread":
+            d = np.empty(n)
+            v = -1.5
+            for i in range(n):
+                v = v + 0.05 * (-1.5 - v) + c[i] * 0.3
+                d[i] = v
+            if f["a"] in yahoo:
+                yahoo[f["b"]] = np.maximum(yahoo[f["a"]] - d, 1.0)
+            else:
+                base = yahoo.setdefault(f["b"], 20 + np.zeros(n))
+                yahoo[f["a"]] = base + d
+        else:
+            ratio = np.exp(np.cumsum(c))
+            if f["a"] in yahoo:
+                yahoo[f["b"]] = yahoo[f["a"]] / ratio
+            else:
+                base = yahoo.setdefault(f["b"], 100 * np.exp(np.cumsum(rng.standard_normal(n) * 0.005)))
+                yahoo[f["a"]] = base * ratio
 
     # 3) 아시아 지수: 국면별 베타 × 시차 정렬된 팩터 + 잡음
     for t in config.TARGETS.values():

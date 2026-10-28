@@ -30,6 +30,23 @@ def _aligned(level: pd.Series, dates: pd.DatetimeIndex, strict: bool) -> pd.Seri
     return pd.Series(m["v"].to_numpy(), index=dates)
 
 
+def factor_level(raw: dict, f: dict) -> pd.Series | None:
+    """팩터의 원천 레벨 시계열 (파생 팩터는 두 티커로 계산)."""
+    yahoo, fred = raw["yahoo"], raw["fred"]
+    if f["source"] == "derived":
+        if yahoo is None or f["a"] not in yahoo.columns or f["b"] not in yahoo.columns:
+            return None
+        pair = yahoo[[f["a"], f["b"]]].dropna()
+        if pair.empty:
+            return None
+        a, b = pair[f["a"]], pair[f["b"]]
+        return (a / b.where(b > 0)) if f["op"] == "ratio" else (a - b)
+    frame = yahoo if f["source"] == "yahoo" else fred
+    if frame is None or f["id"] not in frame.columns:
+        return None
+    return frame[f["id"]]
+
+
 def _tech(y: pd.Series) -> dict[str, pd.Series]:
     vol = y.rolling(20).std()
     return {
@@ -86,14 +103,13 @@ def build(raw: dict, target_key: str, mode: str):
 
     cols: dict[str, pd.Series] = {}
     next_ok = mode != "explain"
-    for key, f in config.FACTORS.items():
+    for key, f in config.active_factors().items():
         if key in t["exclude"] or f["source"] == "tech":
             continue
-        frame = yahoo if f["source"] == "yahoo" else fred
-        if frame is None or f["id"] not in frame.columns:
+        src = factor_level(raw, f)
+        if src is None:
             continue
         strict = _strict(mode, f["region"], t["region"])
-        src = frame[f["id"]]
         if raw.get("source") != "demo":
             src = src[src.index <= completed_cutoff(f["region"])]
         a = _aligned(src, ext, strict)

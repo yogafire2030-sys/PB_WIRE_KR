@@ -28,7 +28,7 @@ ST_SEL, ST_INS, ST_PRN, ST_NOV = "S", "I", "P", "N"  # 채택 / 비유의 / 상�
 class Settings:
     window: int = 252        # 롤링 창(거래일)
     alpha: float = 0.05      # 유의수준
-    mode: str = "preopen"    # preopen(개장 전 정보로 예측, 기본) | predict(하루 더 늦춤) | explain(동시점 설명)
+    mode: str = "explain"    # explain(동시점 설명, 기본) | preopen(개장 전 정보로 예측) | predict(하루 더 늦춤)
     correction: str = "bh"   # none | bh | t3
     corr_max: float = 0.80   # 다중공선성 제거 임계치
     halflife: int = 10       # 가중치 EWMA 반감기(거래일)
@@ -42,7 +42,7 @@ class Settings:
         "halflife": (1, 120), "nw_lags": (0, 20), "history": (60, 2500),
         "horizon": (1, 20), "fc_window": (252, 1500),
     }
-    CHOICES = {"mode": ("preopen", "predict", "explain"), "correction": ("none", "bh", "t3")}
+    CHOICES = {"mode": ("explain", "preopen", "predict"), "correction": ("none", "bh", "t3")}
 
     @classmethod
     def from_dict(cls, d: dict | None) -> "Settings":
