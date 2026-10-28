@@ -100,7 +100,7 @@
   {% if nd and nd.mode != 'explain' %}
   <section class="panel nextday">
     <div class="panel-head">
-      <h2>{{ nd.label }} {{ targets[target].name }} 개장 전 예상 <span class="muted">{{ '간밤 해외시장·환율 등 장 시작 전에 이미 마감된 정보 기준' if nd.mode == 'preopen' else '전일까지의 팩터 기준' }}</span></h2>
+      <h2>{{ nd.label }} {{ targets[target].name }} 개장 전 예상 <span class="muted">{{ ('간밤 미국장·환율 등 장 시작 전에 이미 마감된 정보 기준' if targets[target].region == 'ASIA' else '당일 아시아장·전일 미국장 등 장 시작 전에 이미 마감된 정보 기준') if nd.mode == 'preopen' else '전일까지의 팩터 기준' }}</span></h2>
       {% if nd.available and nd.hit60 is not none %}<span class="grade {{ 'g-good' if nd.hit60 >= 0.6 else ('g-mid' if nd.hit60 >= 0.55 else 'g-low') }}">최근 {{ nd.n60 }}일 방향 적중 {{ '%.0f'|format(nd.hit60 * 100) }}%</span>{% endif %}
     </div>
     {% if nd.available %}
