@@ -2,6 +2,10 @@
   "_안내": "하루하나 영상 목록. 맨 위에 적은 영상이 화면 맨 앞에 나옵니다. 유튜브 링크만 적으면 제목·썸네일은 자동으로 표시됩니다.",
   "posts": [
     {
+      "url": "https://youtu.be/6Vwdx7aPsHU",
+      "date": ""
+    },
+    {
       "url": "https://youtu.be/WHxCRrZ5XLs",
       "date": ""
     }
