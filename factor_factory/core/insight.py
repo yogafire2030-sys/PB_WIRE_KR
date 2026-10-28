@@ -75,8 +75,12 @@ def build(d: dict, st: pd.DataFrame, fd: pd.DataFrame) -> dict:
             out["headline"] = (f"전일 팩터 값으로 {tname}의 다음 날 등락을 볼 때 {len(selected)}개 팩터가 "
                                f"유의합니다. 설명력은 약 {share:.1f}%이고, 핵심 팩터는 {top}입니다.")
     else:
-        out["headline"] = (f"오늘은 t·F 검정을 모두 통과한 팩터 조합이 없습니다. "
-                           f"{tname} 등락을 설명하는 뚜렷한 공통 동인이 보이지 않는 구간입니다.")
+        if mode == "predict":
+            out["headline"] = (f"오늘은 다음 날 {tname} 등락을 미리 알려주는 유의한 선행 팩터가 없습니다. "
+                               "일간 수익률은 대부분의 날 이렇게 나오는 것이 정상이며, 방향 판단은 상단 1주 전망을 참고하세요.")
+        else:
+            out["headline"] = (f"오늘은 t·F 검정을 모두 통과한 팩터 조합이 없습니다. "
+                               f"{tname} 등락을 설명하는 뚜렷한 공통 동인이 보이지 않는 구간입니다.")
 
     # ---------------- 2. 오늘 움직임 분해 ----------------
     last = st.iloc[-1]
