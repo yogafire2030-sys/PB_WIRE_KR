@@ -17,8 +17,9 @@ SHIFT_PP = 0.05        # 가중치 변화 5%p 이상이면 '부각/약화'로 �
 
 # 같은 시간대에 거래돼 지수와 '동시에' 움직이는 팩터(설명 모드에서 원인이 아닌 동행 관계)
 _SAME_SESSION = {
-    "US": {"VIX", "HYG", "SOX", "NASDAQ", "SPX", "DXY", "UST10Y", "UST2YF", "WTI", "GOLD", "COPPER"},
-    "ASIA": {"NIKKEI", "HSI", "SHCOMP"},
+    "US": {"VIX", "HYG", "SOX", "NASDAQ", "SPX", "DXY", "UST10Y", "UST2YF", "WTI", "GOLD", "COPPER",
+           "EWY", "RUT", "VIXTERM", "MOVE", "UST3M", "CREDIT", "EMB", "STOXX50"},
+    "ASIA": {"NIKKEI", "HSI", "SHCOMP", "TWII"},
 }
 
 

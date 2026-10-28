@@ -83,7 +83,7 @@ FACTORS: dict[str, dict] = {
     "DXY":     _f("yahoo", "DX-Y.NYB", "US", "logret", "달러인덱스", "환율", "달러 강세 = 신흥국 자금 이탈"),
     "USDKRW":  _f("yahoo", "KRW=X", "FX", "logret", "원/달러", "환율", "외국인 환차손·수급"),
     "USDJPY":  _f("yahoo", "JPY=X", "FX", "logret", "엔/달러", "환율", "엔 캐리·일본 수출주 경쟁"),
-    "USDCNH":  _f("yahoo", "CNH=X", "FX", "logret", "달러/위안(역외)", "환율",
+    "USDCNH":  _f("yahoo", "CNY=X", "FX", "logret", "달러/위안", "환율",
                   "중국 리스크·원화와의 동조 — 위안 약세는 원화 약세로 전이", **_NEW),
     "AUDJPY":  _f("yahoo", "AUDJPY=X", "FX", "logret", "호주달러/엔", "환율",
                   "원자재통화 vs 안전통화 — 대표적 위험선호 온도계", **_NEW),
