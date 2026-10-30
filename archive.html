@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>PB수첩 - 주가지수 예상 모델 · 팩터 아카이브</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
+    <div>
+      <strong>PB수첩 - 주가지수 예상 모델</strong>
+      <small class="credit">made by 박*남</small>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="대상 지수">
+    
+    <a href="index.html" class="">KOSPI</a>
+    
+    <a href="kosdaq.html" class="">KOSDAQ</a>
+    
+    <a href="spx.html" class="">S&amp;P 500</a>
+    
+    <a href="ndx.html" class="">NASDAQ 100</a>
+    
+    <a href="archive.html" class="arch on">팩터 아카이브</a>
+  </nav>
+  <div class="actions">
+
+    <span class="pill ok">평일 07:30·15:40 자동 갱신 · 2026-10-30 22:29</span>
+
+  </div>
+</header>
+<main class="wrap">
+  <section class="panel arch-intro">
+    <h2>팩터 아카이브 <span class="muted">등록 36개 · 신규 후보 11개 · 평가기간 2024-09-26 ~ 2026-10-30</span></h2>
+    <ol class="steps">
+      <li><b>근거 먼저</b>경제적으로 왜 지수를 움직이는지 한 줄로 설명할 수 있는 변수만 등록합니다. 데이터에서 우연히 맞는 변수를 찾는 것(데이터 마이닝)을 막기 위해서입니다.</li>
+      <li><b>후보로 투입</b>신규 변수는 '후보'로 모델에 바로 넣습니다. 여러 변수를 동시에 검정하는 문제는 BH 보정이 통제합니다.</li>
+      <li><b>성적 평가</b>매일 롤링 회귀 결과를 쌓아 채택률·부호 일관성·중복 여부를 봅니다(아래 표).</li>
+      <li><b>승격/은퇴</b>한 지수라도 '핵심·간헐적 유효'면 유지하고, 모든 지수에서 '휴면'이면 은퇴시킵니다. 은퇴한 변수는 계산에서 빠지지만 기록은 남깁니다.</li>
+    </ol>
+    
+    <div class="arch-sum">
+      <span class="vd-chip v-0" data-v="핵심">핵심 <b>9</b></span><span class="vd-chip v-1" data-v="간헐적 유효">간헐적 유효 <b>13</b></span><span class="vd-chip v-2" data-v="중복">중복 <b>3</b></span><span class="vd-chip v-3" data-v="약함">약함 <b>1</b></span><span class="vd-chip v-4" data-v="휴면">휴면 <b>6</b></span><span class="vd-chip v-5" data-v="데이터 없음">데이터 없음 <b>4</b></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>팩터별 성적표</h2><span class="muted">칸 = 채택률(롤링 회귀에서 유의했던 날의 비율) · 화살표 = 주된 부호 · 칸에 마우스를 올리면 상세</span></div>
+    <div class="table-wrap">
+      <table class="arch-table">
+        <thead><tr>
+          <th>팩터</th><th>상태</th>
+          <th class="num">KOSPI</th><th class="num">KOSDAQ</th><th class="num">S&amp;P 500</th><th class="num">NASDAQ 100</th>
+          <th>종합</th><th>권고</th>
+        </tr></thead>
+        <tbody>
+        
+          <tr>
+            <td class="fac"><span class="nm">단기반전(전일)</span><span class="grp">기술적</span><small class="why">전일 과잉반응의 되돌림</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-핵심" title="채택률 55% (최근60일 98%) · 평균|t| 4.6 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-30">
+              <b>55%</b><i class="dir">▼</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 44% (최근60일 87%) · 평균|t| 3.1 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-19">
+              <b>44%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 26% (최근60일 85%) · 평균|t| 3.3 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-21">
+              <b>26%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">VIX 변화</span><span class="grp">변동성</span><small class="why">주식 공포지수</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-약함" title="채택률 5% (최근60일 0%) · 평균|t| 3.1 · 부호일관성 73% · 상관제거 30% · 마지막 채택 2026-07-20">
+              <b>5%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 31% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 100% (최근60일 100%) · 평균|t| 5.9 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>100%</b><i class="dir">▼</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 84% (최근60일 100%) · 평균|t| 5.6 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>84%</b><i class="dir">▼</i><small>핵심</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">닛케이225</span><span class="grp">주식</span><small class="why">동시간대 아시아 위험선호</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-핵심" title="채택률 100% (최근60일 100%) · 평균|t| 5.7 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-30">
+              <b>100%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 71% (최근60일 22%) · 평균|t| 4.4 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-30">
+              <b>71%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 19% (최근60일 0%) · 평균|t| 2.8 · 부호일관성 81% · 상관제거 0% · 마지막 채택 2026-08-03">
+              <b>19%</b><i class="dir">▼</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">대만 가권</span><span class="grp">주식</span><small class="why">TSMC 중심 반도체 공급망 동조, 외국인 아시아 테크 수급</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-핵심" title="채택률 100% (최근60일 100%) · 평균|t| 6.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-30">
+              <b>100%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 100% (최근60일 100%) · 평균|t| 5.3 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-30">
+              <b>100%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">core 승격 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">러셀2000(소형주)</span><span class="grp">주식</span><small class="why">경기민감·금리민감 소형주 — 위험선호 폭의 넓이</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-약함" title="채택률 7% (최근60일 0%) · 평균|t| 3.1 · 부호일관성 100% · 상관제거 7% · 마지막 채택 2025-02-14">
+              <b>7%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 3% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 87% (최근60일 100%) · 평균|t| 5.1 · 부호일관성 100% · 상관제거 13% · 마지막 채택 2026-10-29">
+              <b>87%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 65% (최근60일 100%) · 평균|t| 3.9 · 부호일관성 100% · 상관제거 13% · 마지막 채택 2026-10-29">
+              <b>65%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">core 승격 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">필라델피아 반도체</span><span class="grp">주식</span><small class="why">한국 시총 상위 반도체 업황 직결</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-약함" title="채택률 5% (최근60일 18%) · 평균|t| 3.4 · 부호일관성 81% · 상관제거 17% · 마지막 채택 2026-09-14">
+              <b>5%</b><i class="dir">▼</i><small>약함</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 1% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 100% (최근60일 100%) · 평균|t| 9.8 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>100%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-제외" title="제외">
+              <small>제외</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">한국 ETF(EWY, 미국상장)</span><span class="grp">주식</span><small class="why">간밤 미국 시장 참가자가 본 한국 주식 — 외국인 시각의 선행 지표</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-핵심" title="채택률 54% (최근60일 95%) · 평균|t| 4.4 · 부호일관성 100% · 상관제거 1% · 마지막 채택 2026-10-28">
+              <b>54%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 6% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 3% (최근60일 0%) · 평균|t| 3.1 · 부호일관성 100% · 상관제거 12% · 마지막 채택 2024-11-05">
+              <b>3%</b><i class="dir">▲</i><small>휴면</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 100% (최근60일 100%) · 평균|t| 6.4 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>100%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">core 승격 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">하이일드 ETF(HYG)</span><span class="grp">크레딧 · FRED 대체</span><small class="why">하이일드 스프레드 대체(부호 반대)</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-약함" title="채택률 6% (최근60일 0%) · 평균|t| 4.2 · 부호일관성 100% · 상관제거 26% · 마지막 채택 2025-01-21">
+              <b>6%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 24% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 71% (최근60일 100%) · 평균|t| 4.9 · 부호일관성 100% · 상관제거 29% · 마지막 채택 2026-10-29">
+              <b>71%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 56% (최근60일 87%) · 평균|t| 4.5 · 부호일관성 100% · 상관제거 29% · 마지막 채택 2026-10-23">
+              <b>56%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">달러인덱스</span><span class="grp">환율</span><small class="why">달러 강세 = 신흥국 자금 이탈</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 2%) · 평균|t| 2.9 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-08-19">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 5% (최근60일 18%) · 평균|t| 3.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-27">
+              <b>5%</b><i class="dir">▼</i><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 16% (최근60일 0%) · 평균|t| 3.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2025-04-10">
+              <b>16%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-핵심" title="채택률 64% (최근60일 85%) · 평균|t| 3.3 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-21">
+              <b>64%</b><i class="dir">▲</i><small>핵심</small>
+            </td>
+            <td><span class="vd vd-핵심">핵심</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">미 2년물 금리(선물)</span><span class="grp">금리 · FRED 대체</span><small class="why">DGS2 대체</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 2% (최근60일 0%) · 평균|t| 2.9 · 부호일관성 100% · 상관제거 5% · 마지막 채택 2026-04-10">
+              <b>2%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 4% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 16% (최근60일 0%) · 평균|t| 3.1 · 부호일관성 100% · 상관제거 4% · 마지막 채택 2026-03-18">
+              <b>16%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 36% (최근60일 0%) · 평균|t| 5.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2025-08-11">
+              <b>36%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">모멘텀 5일</span><span class="grp">기술적</span><small class="why">단기 추세 지속/반전</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.8 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-02-27">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.8 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2024-11-25">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 29% (최근60일 52%) · 평균|t| 3.5 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>29%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-약함" title="채택률 8% (최근60일 0%) · 평균|t| 2.9 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-06-26">
+              <b>8%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">MOVE(채권 변동성)</span><span class="grp">변동성</span><small class="why">금리 변동성 확대는 할인율 불확실성 → 밸류에이션 압박</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 4% (최근60일 0%) · 평균|t| 2.8 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-01-20">
+              <b>4%</b><i class="dir">▲</i><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 5% (최근60일 33%) · 평균|t| 2.7 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-15">
+              <b>5%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 14% (최근60일 85%) · 평균|t| 3.2 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-21">
+              <b>14%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">core 승격 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">구리</span><span class="grp">원자재</span><small class="why">글로벌 제조업 경기</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 9% (최근60일 35%) · 평균|t| 3.0 · 부호일관성 55% · 상관제거 0% · 마지막 채택 2026-09-09">
+              <b>9%</b><i class="dir">▼</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 2%) · 평균|t| 2.5 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-08-11">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">금</span><span class="grp">원자재</span><small class="why">안전자산 선호</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-간헐적유효" title="채택률 25% (최근60일 0%) · 평균|t| 3.6 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-03-10">
+              <b>25%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 16% (최근60일 0%) · 평균|t| 3.2 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2025-10-20">
+              <b>16%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.5 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-06-15">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">비트코인</span><span class="grp">원자재</span><small class="why">개인 투기심리·유동성</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.5 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-02-27">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 19% (최근60일 0%) · 평균|t| 2.9 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-02-05">
+              <b>19%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">나스닥 종합</span><span class="grp">주식</span><small class="why">성장·기술주 심리</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-간헐적유효" title="채택률 10% (최근60일 77%) · 평균|t| 3.4 · 부호일관성 100% · 상관제거 82% · 마지막 채택 2026-10-28">
+              <b>10%</b><i class="dir">▼</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 82% · 마지막 채택 -">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-제외" title="제외">
+              <small>제외</small>
+            </td>
+            <td class="num cell vd-제외" title="제외">
+              <small>제외</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">상해종합</span><span class="grp">주식</span><small class="why">중국 내수 경기 기대</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-약함" title="채택률 10% (최근60일 18%) · 평균|t| 3.2 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>10%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 27% (최근60일 70%) · 평균|t| 4.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-14">
+              <b>27%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 14% (최근60일 60%) · 평균|t| 2.7 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>14%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">유로스톡스50</span><span class="grp">주식</span><small class="why">아시아 마감 후·미국 개장 전 글로벌 위험선호의 중간 다리</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.6 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-03-04">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 10% (최근60일 50%) · 평균|t| 3.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>10%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 1% (최근60일 0%) · 평균|t| 2.7 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2025-08-08">
+              <b>1%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">core 승격 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">항셍</span><span class="grp">주식</span><small class="why">중국 관련 외국인 자금 흐름</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-약함" title="채택률 11% (최근60일 0%) · 평균|t| 3.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-06-01">
+              <b>11%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td class="num cell vd-약함" title="채택률 8% (최근60일 0%) · 평균|t| 3.6 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-05-26">
+              <b>8%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 22% (최근60일 0%) · 평균|t| 3.3 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-03-05">
+              <b>22%</b><i class="dir">▼</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 20% (최근60일 0%) · 평균|t| 2.7 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-02-05">
+              <b>20%</b><i class="dir">▼</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">신흥국 달러채(EMB)</span><span class="grp">크레딧</span><small class="why">신흥국 신용 여건 — 한국 등 EM 자금흐름과 동행</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 74% · 마지막 채택 -">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 76% · 마지막 채택 -">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 29% (최근60일 0%) · 평균|t| 5.8 · 부호일관성 100% · 상관제거 71% · 마지막 채택 2026-04-20">
+              <b>29%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 29% (최근60일 0%) · 평균|t| 4.6 · 부호일관성 100% · 상관제거 71% · 마지막 채택 2026-04-20">
+              <b>29%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">core 승격 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">하이일드/투자등급 상대강도</span><span class="grp">크레딧 · 파생</span><small class="why">같은 회사채 안에서 위험등급 선호 — 금리 효과를 걷어낸 순수 신용 위험선호</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-휴면" title="채택률 3% (최근60일 0%) · 평균|t| 2.9 · 부호일관성 100% · 상관제거 4% · 마지막 채택 2024-11-22">
+              <b>3%</b><i class="dir">▲</i><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 3% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 28% (최근60일 0%) · 평균|t| 3.7 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-04-15">
+              <b>28%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-간헐적유효" title="채택률 30% (최근60일 0%) · 평균|t| 4.5 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-04-08">
+              <b>30%</b><i class="dir">▲</i><small>간헐적 유효</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">core 승격 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">엔/달러</span><span class="grp">환율</span><small class="why">엔 캐리·일본 수출주 경쟁</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-간헐적유효" title="채택률 7% (최근60일 58%) · 평균|t| 2.7 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-10-27">
+              <b>7%</b><i class="dir">▼</i><small>간헐적 유효</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.8 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-04-21">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-약함" title="채택률 5% (최근60일 23%) · 평균|t| 2.8 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-09-16">
+              <b>5%</b><i class="dir">▼</i><small>약함</small>
+            </td>
+            <td><span class="vd vd-간헐적유효">간헐적 유효</span></td>
+            <td class="act">유지</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">미 10년물 금리</span><span class="grp">금리</span><small class="why">할인율·밸류에이션</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-중복" title="채택률 9% (최근60일 0%) · 평균|t| 3.8 · 부호일관성 100% · 상관제거 62% · 마지막 채택 2024-12-03">
+              <b>9%</b><i class="dir">▼</i><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 5% (최근60일 0%) · 평균|t| 3.1 · 부호일관성 100% · 상관제거 64% · 마지막 채택 2024-11-01">
+              <b>5%</b><i class="dir">▼</i><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 1% (최근60일 0%) · 평균|t| 3.0 · 부호일관성 100% · 상관제거 68% · 마지막 채택 2026-04-20">
+              <b>1%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 7% (최근60일 2%) · 평균|t| 3.4 · 부호일관성 100% · 상관제거 72% · 마지막 채택 2026-10-23">
+              <b>7%</b><i class="dir">▲</i><small>중복</small>
+            </td>
+            <td><span class="vd vd-중복">중복</span></td>
+            <td class="act">중복 — 하나만 남기기</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">VIX 기간구조(1M−3M)</span><span class="grp">변동성 · 파생</span><small class="why">단기 공포가 중기보다 높아지는(역전) 순간이 패닉 국면 — 레벨보다 구조 변화가 신호</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-중복" title="채택률 2% (최근60일 0%) · 평균|t| 3.1 · 부호일관성 100% · 상관제거 76% · 마지막 채택 2026-04-22">
+              <b>2%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 69% · 마지막 채택 -">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 100% · 마지막 채택 -">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 100% · 마지막 채택 -">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td><span class="vd vd-중복">중복</span></td>
+            <td class="act">중복 — 하나만 남기기</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">S&amp;P 500</span><span class="grp">주식</span><small class="why">글로벌 위험선호의 기준점</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| 2.8 · 부호일관성 100% · 상관제거 88% · 마지막 채택 2026-06-23">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-중복" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 99% · 마지막 채택 -">
+              <b>0%</b><small>중복</small>
+            </td>
+            <td class="num cell vd-제외" title="제외">
+              <small>제외</small>
+            </td>
+            <td class="num cell vd-제외" title="제외">
+              <small>제외</small>
+            </td>
+            <td><span class="vd vd-중복">중복</span></td>
+            <td class="act">중복 — 하나만 남기기</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">호주달러/엔</span><span class="grp">환율</span><small class="why">원자재통화 vs 안전통화 — 대표적 위험선호 온도계</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-약함" title="채택률 8% (최근60일 10%) · 평균|t| 2.8 · 부호일관성 86% · 상관제거 0% · 마지막 채택 2026-10-29">
+              <b>8%</b><i class="dir">▲</i><small>약함</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.6 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-04-21">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-약함">약함</span></td>
+            <td class="act">관찰 후 은퇴 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">미 3개월물 금리</span><span class="grp">금리</span><small class="why">단기 정책금리 기대 — Fed 경로 재평가를 가장 빨리 반영</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-휴면">휴면</span></td>
+            <td class="act">관찰 후 은퇴 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">모멘텀 20일</span><span class="grp">기술적</span><small class="why">중기 추세</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-휴면">휴면</span></td>
+            <td class="act">은퇴 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">실현변동성 변화</span><span class="grp">기술적</span><small class="why">변동성 레짐 전환</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 3.1 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2025-08-28">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 2% (최근60일 0%) · 평균|t| 3.0 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2025-02-19">
+              <b>2%</b><i class="dir">▼</i><small>휴면</small>
+            </td>
+            <td><span class="vd vd-휴면">휴면</span></td>
+            <td class="act">은퇴 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">WTI 유가</span><span class="grp">원자재</span><small class="why">인플레·비용 압력</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 1% (최근60일 8%) · 평균|t| 2.8 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2026-09-14">
+              <b>1%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-휴면">휴면</span></td>
+            <td class="act">은퇴 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">달러/위안</span><span class="grp">환율</span><small class="why">중국 리스크·원화와의 동조 — 위안 약세는 원화 약세로 전이</small></td>
+            <td><span class="st st-candidate">신규 후보</span><small class="added">2026-10-28 등록</small></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-휴면">휴면</span></td>
+            <td class="act">관찰 후 은퇴 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">원/달러</span><span class="grp">환율</span><small class="why">외국인 환차손·수급</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| 2.5 · 부호일관성 100% · 상관제거 0% · 마지막 채택 2025-02-19">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td class="num cell vd-휴면" title="채택률 0% (최근60일 0%) · 평균|t| - · 부호일관성 0% · 상관제거 0% · 마지막 채택 -">
+              <b>0%</b><small>휴면</small>
+            </td>
+            <td><span class="vd vd-휴면">휴면</span></td>
+            <td class="act">은퇴 검토</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">10년 기대인플레</span><span class="grp">금리</span><small class="why">인플레 기대</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td><span class="vd vd-데이터없음">데이터 없음</span></td>
+            <td class="act">데이터 확인 필요</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">미 2년물 금리</span><span class="grp">금리</span><small class="why">Fed 정책 기대</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td><span class="vd vd-데이터없음">데이터 없음</span></td>
+            <td class="act">데이터 확인 필요</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">장단기 금리차</span><span class="grp">금리</span><small class="why">경기 사이클 기대</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td><span class="vd vd-데이터없음">데이터 없음</span></td>
+            <td class="act">데이터 확인 필요</td>
+          </tr>
+        
+          <tr>
+            <td class="fac"><span class="nm">하이일드 스프레드</span><span class="grp">크레딧</span><small class="why">신용위험 프리미엄</small></td>
+            <td><span class="st st-core">기본</span></td>
+            
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td class="num cell vd-데이터없음" title="데이터 없음">
+              <small>데이터 없음</small>
+            </td>
+            <td><span class="vd vd-데이터없음">데이터 없음</span></td>
+            <td class="act">데이터 확인 필요</td>
+          </tr>
+        
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel note">
+    <h2>판정 기준</h2>
+    <ul>
+      <li><b>핵심</b>: 채택률 50% 이상, 부호 일관성 90% 이상. 늘 같은 방향으로 유의한 변수입니다.</li>
+      <li><b>간헐적 유효</b>: 채택률 15% 이상이거나 최근 60일 30% 이상. 특정 국면에서만 작동하는 변수입니다.</li>
+      <li><b>부호 불안정</b>: 자주 유의하지만 방향이 국면마다 바뀝니다(예: 금리와 주가 관계). 해석할 때 주의가 필요합니다.</li>
+      <li><b>중복</b>: 다른 변수와 상관이 0.8 이상이라 절반 넘게 '상관제거'됐습니다. 같은 정보를 가진 둘 중 하나만 남기면 됩니다.</li>
+      <li><b>휴면</b>: 채택률 5% 미만입니다. 모든 지수에서 휴면이면 <code>config.py</code>에서 <code>status="retired"</code>로 바꾸세요.</li>
+      <li>성적은 저장된 계산 기간(기본 500거래일)의 롤링 결과입니다. 새 후보도 첫 실행부터 과거 기간 성적이 바로 나옵니다.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
