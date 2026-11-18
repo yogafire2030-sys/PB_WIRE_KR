@@ -169,3 +169,4 @@ a.brand{text-decoration:none}
   .scan .table-wrap{max-height:none}
 }
 @media (max-width:600px){.scan-status #statusText{display:none}}
+.scan .data-info{font-size:12px;color:var(--muted);white-space:nowrap}

@@ -43,25 +43,23 @@
   <div class="layout">
     <aside class="sidebar">
       <form id="screenForm" autocomplete="off" novalidate>
-        {% for g in groups %}
         <section class="panel">
-          <div class="panel-head"><h2>{{ g.title }}</h2><span>{{ g.subtitle }}</span></div>
-          {% for f in g.filters %}
+          <div class="panel-head"><h2>대상 · 유동성</h2><span>S&amp;P 500 + 나스닥 100</span></div>
+          {% for f in selects %}
           <label class="field">
             <span class="field-label">{{ f.label }}</span>
-            <select name="{{ f.key }}" data-filter>
-              {% for code, text in f.options %}
-              <option value="{{ code }}" {% if code == f.default %}selected{% endif %}>{{ text }}</option>
+            <select name="{{ f.key }}" data-param>
+              {% for value, text in f.options %}
+              <option value="{{ value }}" {% if value == f.default %}selected{% endif %}>{{ text }}</option>
               {% endfor %}
             </select>
             {% if f.hint %}<span class="field-hint">{{ f.hint }}</span>{% endif %}
           </label>
           {% endfor %}
         </section>
-        {% endfor %}
 
         <section class="panel">
-          <div class="panel-head"><h2>정밀 판정</h2><span>Finviz 데이터로 후처리</span></div>
+          <div class="panel-head"><h2>Trend Template 기준</h2><span>미너비니 8개 조건</span></div>
           {% for p in post_params %}
           <label class="field">
             <span class="field-label">{{ p.label }}</span>
@@ -76,14 +74,6 @@
           </label>
         </section>
 
-        <details class="panel advanced">
-          <summary>고급: Finviz 필터 코드 직접 추가</summary>
-          <label class="field">
-            <span class="field-hint">쉼표로 구분 (예: sh_relvol_o1.5, ta_perf_13wup)</span>
-            <input type="text" name="custom" id="customCodes" maxlength="800" spellcheck="false" placeholder="sh_relvol_o1.5">
-          </label>
-        </details>
-
         <div class="actions">
           <button type="submit" class="btn primary" id="runBtn">
             <span class="btn-label">스크리닝 실행</span><span class="spinner" aria-hidden="true"></span>
@@ -95,7 +85,7 @@
 
     <main class="content">
       <section class="kpis">
-        <div class="kpi"><span class="kpi-label">Finviz 결과</span><span class="kpi-value" id="kpiTotal">—</span></div>
+        <div class="kpi"><span class="kpi-label">분석 종목</span><span class="kpi-value" id="kpiTotal">—</span></div>
         <div class="kpi"><span class="kpi-label">전 조건 충족</span><span class="kpi-value accent" id="kpiPass">—</span></div>
         <div class="kpi"><span class="kpi-label">버즈 분석 종목</span><span class="kpi-value" id="kpiBuzz">—</span></div>
         <div class="kpi"><span class="kpi-label">언급 급증 (24h)</span><span class="kpi-value warm" id="kpiSurge">—</span></div>
@@ -103,8 +93,8 @@
 
       <section class="s-toolbar">
         <div class="s-toolbar-left">
-          <input type="search" id="tableFilter" placeholder="티커 · 종목명 · 섹터 검색" aria-label="결과 내 검색">
-          <a id="finvizLink" class="s-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Finviz에서 열기 ↗</a>
+          <input type="search" id="tableFilter" placeholder="티커 · 종목명 검색" aria-label="결과 내 검색">
+          <span class="data-info" id="dataInfo"></span>
         </div>
         <div class="s-toolbar-right">
           <label class="inline">상위
@@ -132,11 +122,11 @@
               <th data-sort="price" class="num">가격</th>
               <th data-sort="change" class="num">등락</th>
               <th data-sort="perf_y" class="num">1Y</th>
-              <th data-sort="high52" class="num">52W 고가</th>
-              <th data-sort="low52" class="num">52W 저가</th>
-              <th data-sort="eps_qoq" class="num">EPS Q/Q</th>
-              <th data-sort="sales_qoq" class="num">매출 Q/Q</th>
-              <th data-sort="market_cap" class="num">시총</th>
+              <th data-sort="from_high" class="num">52W 고가 대비</th>
+              <th data-sort="from_low" class="num">52W 저가 대비</th>
+              <th data-sort="sma50_pct" class="num">50일선 대비</th>
+              <th data-sort="sma200_pct" class="num">200일선 대비</th>
+              <th data-sort="avg_volume" class="num">평균거래량</th>
               <th data-sort="buzz24" class="num">언급 24h</th>
               <th data-sort="buzzChg" class="num">전일대비</th>
               <th data-sort="watchers" class="num">관심자</th>
@@ -147,10 +137,10 @@
           </tbody>
         </table>
       </section>
-      <p class="footnote">* RS는 현재 결과 집합 내 가중 수익률(분기 40% · 반기 30% · 1년 30%) 백분위입니다. IBD RS Rating과 동일하지 않습니다.
+      <p class="footnote">* RS는 S&amp;P 500 + 나스닥 100 전체 내 가중 수익률(최근 분기 40% · 이전 3개 분기 각 20%) 백분위로, IBD RS Rating을 근사한 값입니다.
         조건 점: <span class="chk on"></span> 충족 <span class="chk off"></span> 미충족 <span class="chk na"></span> 데이터 없음 ·
         등락 색상: <span class="pos">상승</span> / <span class="neg">하락</span></p>
-      <p class="footnote">Finviz·Stocktwits 공개 데이터 기반 참고용 정보이며, Finviz 무료 데이터는 지연 시세입니다. 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
+      <p class="footnote">Yahoo Finance 일봉·Stocktwits 공개 데이터 기반 참고용 정보이며, 시세는 지연될 수 있습니다. 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
     </main>
   </div>
 
@@ -175,7 +165,8 @@
       <h3>Stocktwits 언급 추이 <span class="muted">(저장된 스냅샷)</span></h3>
       <div class="chart" id="dChart"></div>
       <div class="d-links">
-        <a id="dFinviz" target="_blank" rel="noopener noreferrer">Finviz 차트 ↗</a>
+        <a id="dYahoo" target="_blank" rel="noopener noreferrer">Yahoo 차트 ↗</a>
+        <a id="dFinviz" target="_blank" rel="noopener noreferrer">Finviz ↗</a>
         <a id="dStocktwits" target="_blank" rel="noopener noreferrer">Stocktwits ↗</a>
       </div>
     </div>

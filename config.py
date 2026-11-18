@@ -37,9 +37,8 @@ class Config:
                                 os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "buzz.db"))
     SCANNER_CONNECT_TIMEOUT = 5
     SCANNER_READ_TIMEOUT = 20
-    FINVIZ_MAX_PAGES = _int("FINVIZ_MAX_PAGES", 15, 1, 50)          # 페이지당 20종목
-    FINVIZ_PAGE_DELAY = 0.6                                          # 페이지 간 지연(초)
-    FINVIZ_CACHE_TTL = _int("FINVIZ_CACHE_TTL", 600, 0, 86400)
+    SCAN_REFRESH_MIN = _int("SCAN_REFRESH_MIN", 60, 10, 1440)       # 전 종목 재계산 주기(분)
+    SCAN_WORKERS = _int("SCAN_WORKERS", 6, 1, 12)                    # Yahoo 동시 조회 수
     STOCKTWITS_CACHE_TTL = _int("STOCKTWITS_CACHE_TTL", 600, 0, 86400)
     STOCKTWITS_MAX_PAGES = _int("STOCKTWITS_MAX_PAGES", 4, 1, 10)
     STOCKTWITS_MAX_WORKERS = _int("STOCKTWITS_MAX_WORKERS", 4, 1, 8)

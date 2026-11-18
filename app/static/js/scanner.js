@@ -43,7 +43,7 @@
     form: $("screenForm"), runBtn: $("runBtn"), resetBtn: $("resetBtn"),
     body: $("resultBody"), table: $("resultTable"), notice: $("notice"),
     status: $("statusText"), statusDot: $("statusDot"),
-    tableFilter: $("tableFilter"), finvizLink: $("finvizLink"),
+    tableFilter: $("tableFilter"), dataInfo: $("dataInfo"),
     buzzBtn: $("buzzBtn"), buzzCount: $("buzzCount"), csvBtn: $("csvBtn"),
     kpiTotal: $("kpiTotal"), kpiPass: $("kpiPass"), kpiBuzz: $("kpiBuzz"), kpiSurge: $("kpiSurge"),
     drawer: $("drawer"), backdrop: $("drawerBackdrop"),
@@ -57,6 +57,8 @@
     return n;
   }
   const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+  const vol = (v) => (!isNum(v) ? "—" : v >= 1e6 ? `${NUM_FMT.format(v / 1e6)}M` : `${NUM_FMT.format(v / 1e3)}K`);
+  const usd = (v) => (isNum(v) ? `$${NUM_FMT.format(v)}` : "—");
   const pct = (v) => (isNum(v) ? `${v > 0 ? "+" : ""}${NUM_FMT.format(v)}%` : "—");
   const signCls = (v) => (!isNum(v) ? "dim" : v > 0 ? "pos" : v < 0 ? "neg" : "");
 
@@ -100,12 +102,34 @@
 
   /* ---------- 스크리닝 ---------- */
   function collectForm() {
-    const filters = {};
-    els.form.querySelectorAll("[data-filter]").forEach((s) => { filters[s.name] = s.value; });
     const params = {};
-    els.form.querySelectorAll("[data-param]").forEach((i) => { params[i.name] = Number(i.value); });
+    els.form.querySelectorAll("[data-param]").forEach((i) => { params[i.name] = i.type === "number" ? Number(i.value) : i.value; });
     params.strict = $("strict").checked;
-    return { filters, params, custom: $("customCodes").value.trim() };
+    return { params };
+  }
+
+  const sleep = (ms, signal) => new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("aborted", "AbortError")); }, { once: true });
+  });
+
+  // 서버가 전 종목을 처음 계산하는 동안(약 1~2분) 진행률을 보여 주며 대기
+  async function waitReady(ctrl) {
+    for (let i = 0; i < 120; i++) {
+      const s = await api(`${API}/status`, null, ctrl);
+      if (s.ready) return;
+      const pctDone = s.total ? Math.round((s.done / s.total) * 100) : 0;
+      setStatus(`데이터 준비 중… ${s.done}/${s.total || "?"} (${pctDone}%)`, true);
+      notice("서버가 S&P 500 + 나스닥 100 전 종목의 1년 주가를 계산하고 있습니다. 처음 한 번만 1~2분 걸리며, 끝나면 자동으로 결과가 표시됩니다.", "info");
+      await sleep(3000, ctrl.signal);
+    }
+    throw new Error("데이터 준비가 지연되고 있습니다. 잠시 후 다시 시도하세요.");
+  }
+
+  function showDataInfo(st) {
+    if (!st?.updated) { els.dataInfo.textContent = ""; return; }
+    const t = new Date(st.updated * 1000).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+    els.dataInfo.textContent = `Yahoo 일봉 기준 · ${t} 계산 · ${INT_FMT.format(st.count)}종목${st.running ? " · 갱신 중" : ""}`;
   }
 
   async function runScreen(ev) {
@@ -114,27 +138,28 @@
     const ctrl = (state.screenCtrl = new AbortController());
     loading(els.runBtn, true);
     notice(null);
-    setStatus("Finviz 스크리닝 중… (수십 초 소요)", true);
+    setStatus("스크리닝 중…", true);
     try {
-      const data = await api(`${API}/screen`, collectForm(), ctrl);
+      let data = await api(`${API}/screen`, collectForm(), ctrl);
+      if (data.preparing) {
+        await waitReady(ctrl);
+        notice(null);
+        data = await api(`${API}/screen`, collectForm(), ctrl);
+      }
       state.rows = data.rows;
       state.buzz.clear();
-      els.finvizLink.href = data.finviz_url;
-      els.finvizLink.hidden = false;
-      const full = data.rows.filter((r) => r.passed === r.total).length;
+      showDataInfo(data.status);
       els.kpiTotal.textContent = INT_FMT.format(data.total);
-      els.kpiPass.textContent = INT_FMT.format(full);
+      els.kpiPass.textContent = INT_FMT.format(data.full);
       els.kpiBuzz.textContent = "—";
       els.kpiSurge.textContent = "—";
       els.buzzBtn.disabled = data.rows.length === 0;
       els.csvBtn.disabled = data.rows.length === 0;
-      if (data.truncated) {
-        notice(`Finviz 결과 ${INT_FMT.format(data.total)}개 중 상위 ${INT_FMT.format(data.fetched)}개만 가져왔습니다. 조건을 더 좁히면 전체를 분석할 수 있습니다.`, "warn");
-      } else if (!data.rows.length) {
+      if (!data.rows.length) {
         notice("조건에 맞는 종목이 없습니다. 필터를 완화해 보세요.", "warn");
       }
       applyView();
-      setStatus(`완료 · ${data.rows.length}종목${data.cached ? " (캐시)" : ""}`, false);
+      setStatus(`완료 · ${data.rows.length}종목`, false);
       // 좁은 화면(조건 패널이 위에 쌓이는 배치)에서는 결과로 자동 이동
       if (matchMedia("(max-width: 860px)").matches) document.querySelector(".scan .content")?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
@@ -158,7 +183,7 @@
   function applyView() {
     const q = state.filter;
     let v = q
-      ? state.rows.filter((r) => `${r.ticker} ${r.company} ${r.sector} ${r.industry}`.toLowerCase().includes(q))
+      ? state.rows.filter((r) => `${r.ticker} ${r.company} ${r.exchange}`.toLowerCase().includes(q))
       : state.rows.slice();
     if (state.sortKey) {
       const k = state.sortKey, d = state.sortDir;
@@ -189,7 +214,7 @@
     tr.append(tdT);
 
     const tdC = el("td", "col-company", r.company || "");
-    tdC.append(el("span", "sub", r.industry || r.sector || ""));
+    tdC.append(el("span", "sub", r.exchange || ""));
     tr.append(tdC);
 
     const tdChk = el("td", "num");
@@ -209,11 +234,11 @@
     tr.append(numCell(r.price, "", isNum(r.price) ? `$${NUM_FMT.format(r.price)}` : "—"));
     tr.append(numCell(r.change, signCls(r.change), pct(r.change)));
     tr.append(numCell(r.perf_y, signCls(r.perf_y), pct(r.perf_y)));
-    tr.append(numCell(r.high52, "", pct(r.high52)));
-    tr.append(numCell(r.low52, "", pct(r.low52)));
-    tr.append(numCell(r.eps_qoq, signCls(r.eps_qoq), pct(r.eps_qoq)));
-    tr.append(numCell(r.sales_qoq, signCls(r.sales_qoq), pct(r.sales_qoq)));
-    tr.append(numCell(r.market_cap, "", r.market_cap_text || "—"));
+    tr.append(numCell(r.from_high, "", pct(r.from_high)));
+    tr.append(numCell(r.from_low, "", pct(r.from_low)));
+    tr.append(numCell(r.sma50_pct, signCls(r.sma50_pct), pct(r.sma50_pct)));
+    tr.append(numCell(r.sma200_pct, signCls(r.sma200_pct), pct(r.sma200_pct)));
+    tr.append(numCell(r.avg_volume, "", vol(r.avg_volume)));
 
     const b = state.buzz.get(r.ticker);
     const td24 = el("td", "num"), tdChg = el("td", "num"), tdW = el("td", "num");
@@ -335,23 +360,27 @@
     const r = state.rows.find((x) => x.ticker === ticker);
     if (!r) return;
     $("dTicker").textContent = r.ticker;
-    $("dCompany").textContent = [r.company, r.sector, r.industry].filter(Boolean).join(" · ");
+    $("dCompany").textContent = [r.company, r.exchange].filter(Boolean).join(" · ");
     document.querySelectorAll("#dChecks li").forEach((li) => {
       const v = r.checks?.[li.dataset.check];
       li.firstElementChild.className = `chk ${v === true ? "on" : v === false ? "off" : "na"}`;
     });
     $("dStats").replaceChildren(
-      stat("50일선 대비", pct(r.sma50), signCls(r.sma50)),
-      stat("200일선 대비", pct(r.sma200), signCls(r.sma200)),
+      stat("50일선", usd(r.sma50)),
+      stat("150일선", usd(r.sma150)),
+      stat("200일선", usd(r.sma200)),
+      stat("50일선 대비", pct(r.sma50_pct), signCls(r.sma50_pct)),
+      stat("150일선 대비", pct(r.sma150_pct), signCls(r.sma150_pct)),
+      stat("200일선 대비", pct(r.sma200_pct), signCls(r.sma200_pct)),
+      stat("52주 고가", usd(r.high52)),
+      stat("52주 저가", usd(r.low52)),
       stat("RSI(14)", isNum(r.rsi) ? NUM_FMT.format(r.rsi) : "—"),
       stat("분기 수익률", pct(r.perf_q), signCls(r.perf_q)),
       stat("반기 수익률", pct(r.perf_h), signCls(r.perf_h)),
-      stat("ROE", pct(r.roe), signCls(r.roe)),
-      stat("기관 보유", pct(r.inst_own)),
       stat("상대 거래량", isNum(r.rel_volume) ? `${NUM_FMT.format(r.rel_volume)}x` : "—"),
-      stat("실적 발표", r.earnings || "—"),
     );
-    $("dFinviz").href = r.quote_url;
+    $("dYahoo").href = `https://finance.yahoo.com/quote/${encodeURIComponent(r.ticker)}`;
+    $("dFinviz").href = `https://finviz.com/quote.ashx?t=${encodeURIComponent(r.ticker)}`;
     $("dStocktwits").href = `https://stocktwits.com/symbol/${encodeURIComponent(r.ticker)}`;
     els.drawer.classList.add("open");
     els.drawer.setAttribute("aria-hidden", "false");
@@ -422,13 +451,13 @@
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   }
   function exportCsv() {
-    const head = ["Ticker", "Company", "Sector", "Industry", "Passed", "RS", "Price", "Change%", "PerfYear%", "From52WHigh%", "From52WLow%",
-      "EPS_QoQ%", "Sales_QoQ%", "ROE%", "MarketCap", "Mentions24h", "MentionsPrev24h", "MentionChange%", "Watchers"];
+    const head = ["Ticker", "Company", "Exchange", "Passed", "RS", "Price", "Change%", "PerfYear%", "From52WHigh%", "From52WLow%",
+      "vsSMA50%", "vsSMA150%", "vsSMA200%", "AvgVolume50", "Mentions24h", "MentionsPrev24h", "MentionChange%", "Watchers"];
     const lines = [head.join(",")];
     for (const r of state.view) {
       const b = state.buzz.get(r.ticker);
-      lines.push([r.ticker, r.company, r.sector, r.industry, `${r.passed}/${r.total}`, r.rs_rank, r.price, r.change, r.perf_y,
-        r.high52, r.low52, r.eps_qoq, r.sales_qoq, r.roe, r.market_cap_text,
+      lines.push([r.ticker, r.company, r.exchange, `${r.passed}/${r.total}`, r.rs_rank, r.price, r.change, r.perf_y,
+        r.from_high, r.from_low, r.sma50_pct, r.sma150_pct, r.sma200_pct, isNum(r.avg_volume) ? Math.round(r.avg_volume) : "",
         b?.ok ? b.msgs_24h : "", b?.ok ? b.msgs_prev24h : "", b?.ok ? b.change_pct : "", b?.ok ? b.watchers : ""].map(csvCell).join(","));
     }
     const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });

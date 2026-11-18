@@ -1,28 +1,37 @@
-"""SEPA 스크리너(마크 미너비니 Trend Template × Stocktwits 버즈) — /scanner 블루프린트."""
+"""SEPA 스크리너(마크 미너비니 Trend Template × Stocktwits 버즈) — /scanner 블루프린트.
+
+데이터: Yahoo Finance 1년 일봉으로 S&P 500 + 나스닥 100 전 종목을 서버가 주기적으로 계산.
+"""
 import atexit
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from . import db
-from .filters import FILTER_GROUPS, POST_PARAMS, sanitize_filters, sanitize_post_params
+from .filters import POST_PARAMS, SELECTS, sanitize
 from .security import RateLimiter, csrf_protect, get_csrf_token, rate_limited
-from .services import finviz, minervini, stocktwits
+from .services import minervini, stocktwits
+from .services.engine import ScanEngine
 from .services.minervini import CHECK_DEFS
 
 bp = Blueprint("scanner", __name__, url_prefix="/scanner")
 
 _ROW_FIELDS = (
-    "ticker", "company", "sector", "industry", "market_cap", "market_cap_text", "pe", "eps_this_y",
-    "eps_qoq", "sales_qoq", "inst_own", "roe", "perf_w", "perf_m", "perf_q", "perf_h", "perf_y",
-    "sma50", "sma200", "high52", "low52", "rsi", "avg_volume", "avg_volume_text", "rel_volume",
-    "price", "change", "earnings", "checks", "passed", "total", "rs_rank",
+    "ticker", "company", "exchange", "price", "change", "sma50", "sma150", "sma200", "sma50_pct", "sma150_pct",
+    "sma200_pct", "high52", "low52", "from_high", "from_low", "perf_q", "perf_h", "perf_y", "rsi",
+    "avg_volume", "rel_volume", "rs_rank", "checks", "passed", "total",
 )
+MAX_ROWS = 600
+
+
+def _engine() -> ScanEngine:
+    return current_app.extensions["scan_engine"]
 
 
 def init_app(app) -> None:
     cfg = app.config
     timeout = (cfg["SCANNER_CONNECT_TIMEOUT"], cfg["SCANNER_READ_TIMEOUT"])
-    finviz.configure(cfg["FINVIZ_CACHE_TTL"])
+    app.extensions["scan_engine"] = ScanEngine(refresh_sec=cfg["SCAN_REFRESH_MIN"] * 60,
+                                               workers=cfg["SCAN_WORKERS"], timeout=timeout)
     stocktwits.configure(ttl=cfg["STOCKTWITS_CACHE_TTL"], max_pages=cfg["STOCKTWITS_MAX_PAGES"],
                          workers=cfg["STOCKTWITS_MAX_WORKERS"], timeout=timeout)
     atexit.register(stocktwits.shutdown)
@@ -38,7 +47,8 @@ def _json_body() -> dict:
 
 @bp.get("/")
 def index():
-    return render_template("scanner.html", groups=FILTER_GROUPS, post_params=POST_PARAMS,
+    _engine().ensure_fresh()  # 첫 방문 시 계산 시작
+    return render_template("scanner.html", selects=SELECTS, post_params=POST_PARAMS,
                            checks=CHECK_DEFS, csrf_token=get_csrf_token())
 
 
@@ -48,31 +58,38 @@ def api_csrf():
     return jsonify(token=get_csrf_token())
 
 
+@bp.get("/api/status")
+def api_status():
+    eng = _engine()
+    eng.ensure_fresh()
+    return jsonify(eng.status())
+
+
 @bp.post("/api/screen")
 @csrf_protect
 @rate_limited
 def api_screen():
-    body = _json_body()
-    try:
-        codes = sanitize_filters(body.get("filters", {}), body.get("custom", ""))
-    except ValueError as exc:
-        return jsonify(error=str(exc)), 400
-    params = sanitize_post_params(body.get("params", {}))
+    params = sanitize(_json_body().get("params", {}))
+    eng = _engine()
+    eng.ensure_fresh()
+    status = eng.status()
+    if not status["ready"]:
+        return jsonify(preparing=True, status=status), 202
 
-    cfg = current_app.config
-    try:
-        data = finviz.screen(codes, max_pages=cfg["FINVIZ_MAX_PAGES"], delay=cfg["FINVIZ_PAGE_DELAY"],
-                             timeout=(cfg["SCANNER_CONNECT_TIMEOUT"], cfg["SCANNER_READ_TIMEOUT"]))
-    except finviz.FinvizError as exc:
-        return jsonify(error=str(exc)), 502
-
-    # 캐시 원본을 변경하지 않도록 행 복사 후 판정
-    rows = minervini.apply([dict(r) for r in data["rows"]], params)
-    rows = [{k: r.get(k) for k in _ROW_FIELDS} for r in rows]
+    rows = [r for r in eng.rows(params["universe"])
+            if r["price"] > params["min_price"]
+            and (params["min_volume"] == 0 or (r["avg_volume"] or 0) > params["min_volume"])]
+    total = len(rows)
+    rows = minervini.apply(rows, params)[:MAX_ROWS]
+    out = []
     for r in rows:
-        r["quote_url"] = finviz.quote_url(r["ticker"])
-    return jsonify(rows=rows, total=data["total"], fetched=data["fetched"], truncated=data["truncated"],
-                   cached=data["cached"], finviz_url=data["url"], codes=codes)
+        o = {k: r.get(k) for k in _ROW_FIELDS}
+        for k, v in o.items():  # 표시용 반올림(전송량 축소)
+            if isinstance(v, float):
+                o[k] = round(v, 2)
+        out.append(o)
+    full = sum(1 for r in out if r["passed"] == r["total"])
+    return jsonify(rows=out, total=total, full=full, status=status)
 
 
 @bp.post("/api/buzz")
