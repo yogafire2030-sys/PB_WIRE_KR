@@ -581,7 +581,7 @@
 
   // ── 화면 탭(실시간 속보 / 하루하나) ────────────────────
   // 주소 끝 #haruhana 로 바로 열 수 있음. 마지막 탭은 기기에 기억
-  const viewTabs = document.querySelectorAll(".views__tab");
+  const viewTabs = document.querySelectorAll(".views__tab[data-view]"); // 스크리닝 탭은 별도 페이지 링크
   const views = { news: $("viewNews"), haru: $("viewHaru") };
   function setView(v, remember) {
     if (!views[v]) v = "news";

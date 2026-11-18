@@ -4,6 +4,7 @@ import logging
 import os
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
 from .services.feed import FeedService
@@ -14,6 +15,8 @@ from .services.posts import PostStore
 def create_app(config_object=Config, start_poller: bool = True) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_object)
+    # Render 등 리버스 프록시 1단 뒤에서 실제 접속자 IP·https 여부를 인식(요청 제한이 IP별로 동작)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
 
@@ -28,6 +31,8 @@ def create_app(config_object=Config, start_poller: bool = True) -> Flask:
 
     from .routes import bp
     app.register_blueprint(bp)
+    from . import scanner
+    scanner.init_app(app)
 
     # 정적 파일 캐시 무효화 — 배포 시 파일이 바뀌면 주소(?v=)도 바뀌어 브라우저가 새로 받음
     static_dir = os.path.join(app.root_path, "static")

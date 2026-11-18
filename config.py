@@ -29,6 +29,23 @@ class Config:
     CHANNEL_IDLE_SECONDS = _int("CHANNEL_IDLE_SECONDS", 180, 30, 3600)
     RETENTION_HOURS = _int("RETENTION_HOURS", 48, 1, 168)  # 이 시간보다 오래된 속보는 제외
 
+    # ── 스크리너(/scanner) ─────────────────────────────────
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
+    SCANNER_DB_PATH = os.getenv("SCANNER_DB_PATH",
+                                os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance", "buzz.db"))
+    SCANNER_CONNECT_TIMEOUT = 5
+    SCANNER_READ_TIMEOUT = 20
+    FINVIZ_MAX_PAGES = _int("FINVIZ_MAX_PAGES", 15, 1, 50)          # 페이지당 20종목
+    FINVIZ_PAGE_DELAY = 0.6                                          # 페이지 간 지연(초)
+    FINVIZ_CACHE_TTL = _int("FINVIZ_CACHE_TTL", 600, 0, 86400)
+    STOCKTWITS_CACHE_TTL = _int("STOCKTWITS_CACHE_TTL", 600, 0, 86400)
+    STOCKTWITS_MAX_PAGES = _int("STOCKTWITS_MAX_PAGES", 4, 1, 10)
+    STOCKTWITS_MAX_WORKERS = _int("STOCKTWITS_MAX_WORKERS", 4, 1, 8)
+    STOCKTWITS_MAX_SYMBOLS = 30
+    SCANNER_RATE_LIMIT_PER_MIN = _int("SCANNER_RATE_LIMIT_PER_MIN", 20, 1, 1000)
+
     # ── 유튜브 라이브 ──────────────────────────────────────
     # 영상 ID(11자). 형식이 틀리면 라이브 영역을 표시하지 않음(빈 값 = 끄기)
     _yt = os.getenv("YOUTUBE_LIVE_ID", "VlaCnp1fxI8").strip()

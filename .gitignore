@@ -5,3 +5,4 @@ __pycache__/
 factor_factory/data/*
 !factor_factory/data/.gitkeep
 _site/
+instance/

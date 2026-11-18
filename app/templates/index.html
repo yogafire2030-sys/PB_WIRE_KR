@@ -52,6 +52,7 @@
     <nav class="views" role="tablist" aria-label="화면 선택">
       <button type="button" class="views__tab is-active" role="tab" data-view="news" aria-selected="true" aria-controls="viewNews">실시간 속보</button>
       <button type="button" class="views__tab" role="tab" data-view="haru" aria-selected="false" aria-controls="viewHaru">하루하나 <small>{{ posts|length }}</small></button>
+      <a class="views__tab" href="{{ url_for('scanner.index') }}">스크리닝</a>
     </nav>
 
     <div class="view" id="viewNews" role="tabpanel">

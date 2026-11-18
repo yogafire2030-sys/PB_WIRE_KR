@@ -46,9 +46,9 @@ def test_bundled_file_loads_and_renders():
     app = create_app(start_poller=False)
     try:
         posts = app.extensions["posts"].all()
-        assert posts and posts[0]["id"] == "WHxCRrZ5XLs"
+        assert posts and all(len(p["id"]) == 11 for p in posts)  # 영상이 추가돼도 깨지지 않도록
         html = app.test_client().get("/").get_data(as_text=True)
-        assert 'id="viewHaru"' in html and "i.ytimg.com/vi/WHxCRrZ5XLs/hqdefault.jpg" in html
+        assert 'id="viewHaru"' in html and f'i.ytimg.com/vi/{posts[0]["id"]}/hqdefault.jpg' in html
     finally:
         app.extensions["feed"].stop()
         app.extensions["market"].stop()
